@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../utils/formatters.dart';
 
 class MoneyTextField extends StatelessWidget {
   final TextEditingController controller;

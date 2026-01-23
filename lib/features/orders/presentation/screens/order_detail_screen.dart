@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../common/widgets/primary_button.dart';
 import '../../../../common/widgets/danger_button.dart';
 import '../../../../common/widgets/pos_number_pad.dart';
 import '../../../../common/utils/formatters.dart';

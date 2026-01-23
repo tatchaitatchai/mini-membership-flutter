@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../common/widgets/primary_button.dart';
 import '../../../../common/widgets/money_text_field.dart';
-import '../../../../common/utils/validators.dart';
 import '../../data/auth_repository.dart';
 import '../../../shift/data/shift_repository.dart';
 

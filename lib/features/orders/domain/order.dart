@@ -7,6 +7,7 @@ class Order {
   final double discount;
   final double total;
   final double cashReceived;
+  final double transferAmount;
   final double change;
   final String? promotionId;
   final String? attachedSlipUrl;
@@ -26,6 +27,7 @@ class Order {
     required this.discount,
     required this.total,
     required this.cashReceived,
+    this.transferAmount = 0,
     required this.change,
     this.promotionId,
     this.attachedSlipUrl,
@@ -46,6 +48,7 @@ class Order {
     double? discount,
     double? total,
     double? cashReceived,
+    double? transferAmount,
     double? change,
     String? promotionId,
     String? attachedSlipUrl,
@@ -65,6 +68,7 @@ class Order {
       discount: discount ?? this.discount,
       total: total ?? this.total,
       cashReceived: cashReceived ?? this.cashReceived,
+      transferAmount: transferAmount ?? this.transferAmount,
       change: change ?? this.change,
       promotionId: promotionId ?? this.promotionId,
       attachedSlipUrl: attachedSlipUrl ?? this.attachedSlipUrl,

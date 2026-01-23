@@ -1,13 +1,14 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../common/widgets/primary_button.dart';
 import '../../../../common/widgets/secondary_button.dart';
 import '../../../../common/widgets/money_text_field.dart';
 import '../../../../common/utils/formatters.dart';
 import '../../../customers/domain/customer.dart';
 import '../../../customers/data/customer_repository.dart';
-import '../../../products/domain/product.dart';
 import '../../../products/data/product_repository.dart';
 import '../../../promotions/domain/promotion.dart';
 import '../../../promotions/data/promotion_repository.dart';
@@ -27,15 +28,69 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   Customer? _selectedCustomer;
   final Map<String, int> _cart = {};
   Promotion? _selectedPromotion;
-  final _cashReceivedController = TextEditingController();
+  final _cashAmountController = TextEditingController();
+  final _transferAmountController = TextEditingController();
   final _last4Controller = TextEditingController();
+  File? _slipImage;
   bool _isLoading = false;
 
   @override
   void dispose() {
-    _cashReceivedController.dispose();
+    _cashAmountController.dispose();
+    _transferAmountController.dispose();
     _last4Controller.dispose();
     super.dispose();
+  }
+
+  double get _cashAmount => double.tryParse(_cashAmountController.text) ?? 0;
+  double get _transferAmount => double.tryParse(_transferAmountController.text) ?? 0;
+  double get _totalReceived => _cashAmount + _transferAmount;
+  double get _change => _cashAmount > 0 ? (_totalReceived - _total).clamp(0, _cashAmount) : 0;
+
+  Widget _buildPlaceholderImage({double size = 56}) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(color: Colors.grey.shade200, borderRadius: BorderRadius.circular(8)),
+      child: Icon(Icons.inventory_2, color: Colors.grey.shade400, size: size * 0.5),
+    );
+  }
+
+  Future<void> _pickSlipImage() async {
+    final source = await showDialog<ImageSource>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('เลือกรูปสลิป'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('ถ่ายรูป'),
+              onTap: () => Navigator.pop(context, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('เลือกจากคลังรูป'),
+              onTap: () => Navigator.pop(context, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (source == null) return;
+
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(source: source);
+      if (pickedFile != null) {
+        setState(() => _slipImage = File(pickedFile.path));
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ไม่สามารถเปิดกล้องได้: $e')));
+    }
   }
 
   double get _subtotal {
@@ -108,14 +163,18 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   }
 
   Future<void> _completeOrder() async {
-    if (_cashReceivedController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('กรุณากรอกเงินที่รับมา')));
+    if (_cashAmountController.text.isEmpty && _transferAmountController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('กรุณากรอกจำนวนเงิน')));
       return;
     }
 
-    final cashReceived = double.tryParse(_cashReceivedController.text) ?? 0;
-    if (cashReceived < _total) {
+    if (_totalReceived < _total) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('เงินไม่เพียงพอ')));
+      return;
+    }
+
+    if (_transferAmount > 0 && _slipImage == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('กรุณาถ่ายรูปสลิปโอนเงิน')));
       return;
     }
 
@@ -144,9 +203,11 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       subtotal: _subtotal,
       discount: _discount,
       total: _total,
-      cashReceived: cashReceived,
-      change: cashReceived - _total,
+      cashReceived: _cashAmount,
+      transferAmount: _transferAmount,
+      change: _change,
       promotionId: _selectedPromotion?.id,
+      attachedSlipUrl: _slipImage?.path,
       status: OrderStatus.completed,
       createdAt: DateTime.now(),
       createdBy: ref.read(authRepositoryProvider).getCurrentStaffName() ?? 'Staff',
@@ -168,8 +229,9 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
             Text('หมายเลขออร์เดอร์: ${order.id}'),
             const SizedBox(height: 8),
             Text('ยอดรวม: ${Formatters.formatMoney(order.total)}'),
-            Text('เงินสด: ${Formatters.formatMoney(order.cashReceived)}'),
-            Text('เงินทอน: ${Formatters.formatMoney(order.change)}'),
+            if (order.cashReceived > 0) Text('เงินสด: ${Formatters.formatMoney(order.cashReceived)}'),
+            if (order.transferAmount > 0) Text('โอนเงิน: ${Formatters.formatMoney(order.transferAmount)}'),
+            if (order.change > 0) Text('เงินทอน: ${Formatters.formatMoney(order.change)}'),
           ],
         ),
         actions: [
@@ -291,6 +353,18 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
 
                         return Card(
                           child: ListTile(
+                            leading: ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: product.imageUrl != null
+                                  ? Image.network(
+                                      product.imageUrl!,
+                                      width: 56,
+                                      height: 56,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => _buildPlaceholderImage(),
+                                    )
+                                  : _buildPlaceholderImage(),
+                            ),
                             title: Text(product.name),
                             subtitle: Text('${Formatters.formatMoney(product.price)} • สต็อก: ${product.stock}'),
                             trailing: Row(
@@ -345,6 +419,18 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
                               children: _cart.entries.map((entry) {
                                 final product = ref.read(productRepositoryProvider).getProductById(entry.key)!;
                                 return ListTile(
+                                  leading: ClipRRect(
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: product.imageUrl != null
+                                        ? Image.network(
+                                            product.imageUrl!,
+                                            width: 40,
+                                            height: 40,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (_, __, ___) => _buildPlaceholderImage(size: 40),
+                                          )
+                                        : _buildPlaceholderImage(size: 40),
+                                  ),
                                   title: Text(product.name),
                                   subtitle: Text('${entry.value} x ${Formatters.formatMoney(product.price)}'),
                                   trailing: Text(
@@ -438,53 +524,129 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   }
 
   Widget _buildPaymentStep() {
+    final remaining = _total - _totalReceived;
+    final isPaymentComplete = remaining <= 0;
+
     return Padding(
       padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              const Expanded(
-                child: Text('ขั้นตอนที่ 4: ชำระเงิน', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-              ),
-              SecondaryButton(text: 'ย้อนกลับ', onPressed: () => setState(() => _step = 2)),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('สรุปออร์เดอร์', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                  const Divider(),
-                  _buildSummaryRow('ยอดรวมย่อย', Formatters.formatMoney(_subtotal)),
-                  if (_discount > 0) _buildSummaryRow('ส่วนลด', '-${Formatters.formatMoney(_discount)}'),
-                  _buildSummaryRow('ยอดรวม', Formatters.formatMoney(_total), isTotal: true),
-                ],
-              ),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                const Expanded(
+                  child: Text('ขั้นตอนที่ 4: ชำระเงิน', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                ),
+                SecondaryButton(text: 'ย้อนกลับ', onPressed: () => setState(() => _step = 2)),
+              ],
             ),
-          ),
-          const SizedBox(height: 24),
-          MoneyTextField(controller: _cashReceivedController, label: 'เงินที่รับมา', onChanged: (_) => setState(() {})),
-          const SizedBox(height: 16),
-          if (_cashReceivedController.text.isNotEmpty)
+            const SizedBox(height: 24),
             Card(
-              color: Colors.green.shade50,
               child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: _buildSummaryRow(
-                  'เงินทอน',
-                  Formatters.formatMoney((double.tryParse(_cashReceivedController.text) ?? 0) - _total),
-                  isTotal: true,
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('สรุปออร์เดอร์', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                    const Divider(),
+                    _buildSummaryRow('ยอดรวมย่อย', Formatters.formatMoney(_subtotal)),
+                    if (_discount > 0) _buildSummaryRow('ส่วนลด', '-${Formatters.formatMoney(_discount)}'),
+                    _buildSummaryRow('ยอดรวม', Formatters.formatMoney(_total), isTotal: true),
+                  ],
                 ),
               ),
             ),
-          const SizedBox(height: 24),
-          PrimaryButton(text: 'ชำระเงินเสร็จสิ้น', onPressed: _completeOrder, isLoading: _isLoading, fullWidth: true),
-        ],
+            const SizedBox(height: 24),
+            const Text('ช่องทางชำระเงิน', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: MoneyTextField(
+                    controller: _cashAmountController,
+                    label: 'เงินสด',
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: MoneyTextField(
+                    controller: _transferAmountController,
+                    label: 'โอนเงิน',
+                    onChanged: (_) => setState(() {}),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            if (_transferAmount > 0) ...[
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('สลิปโอนเงิน', style: TextStyle(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 12),
+                      if (_slipImage != null) ...[
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.file(_slipImage!, height: 200, fit: BoxFit.cover),
+                        ),
+                        const SizedBox(height: 12),
+                      ],
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: _pickSlipImage,
+                              icon: const Icon(Icons.camera_alt),
+                              label: Text(_slipImage == null ? 'ถ่ายรูปสลิป' : 'ถ่ายใหม่'),
+                            ),
+                          ),
+                          if (_slipImage != null) ...[
+                            const SizedBox(width: 8),
+                            IconButton(
+                              onPressed: () => setState(() => _slipImage = null),
+                              icon: const Icon(Icons.delete, color: Colors.red),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
+            Card(
+              color: isPaymentComplete ? Colors.green.shade50 : Colors.orange.shade50,
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    _buildSummaryRow('รับเงินสด', Formatters.formatMoney(_cashAmount)),
+                    _buildSummaryRow('รับโอน', Formatters.formatMoney(_transferAmount)),
+                    const Divider(),
+                    _buildSummaryRow('รวมรับ', Formatters.formatMoney(_totalReceived), isTotal: true),
+                    if (!isPaymentComplete)
+                      _buildSummaryRow('ยังขาดอีก', Formatters.formatMoney(remaining), isTotal: true)
+                    else if (_change > 0)
+                      _buildSummaryRow('เงินทอน', Formatters.formatMoney(_change), isTotal: true),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 24),
+            PrimaryButton(
+              text: 'ชำระเงินเสร็จสิ้น',
+              onPressed: isPaymentComplete ? _completeOrder : null,
+              isLoading: _isLoading,
+              fullWidth: true,
+            ),
+          ],
+        ),
       ),
     );
   }

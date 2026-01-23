@@ -2,10 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../common/widgets/responsive_scaffold.dart';
-import '../../../../common/widgets/primary_button.dart';
 import '../../../auth/data/auth_repository.dart';
 import '../../../shift/data/shift_repository.dart';
-import '../../../products/data/product_repository.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});

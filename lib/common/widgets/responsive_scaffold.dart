@@ -11,11 +11,13 @@ class ResponsiveScaffold extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: backgroundColor ?? Colors.grey.shade50,
-      body: Column(
-        children: [
-          if (appBar != null) appBar!,
-          Expanded(child: body),
-        ],
+      body: SafeArea(
+        child: Column(
+          children: [
+            if (appBar != null) appBar!,
+            Expanded(child: body),
+          ],
+        ),
       ),
     );
   }
