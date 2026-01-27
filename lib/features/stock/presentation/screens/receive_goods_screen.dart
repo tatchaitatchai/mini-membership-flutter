@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../common/widgets/primary_button.dart';
+import '../../../../common/utils/toast_helper.dart';
 import '../../../products/data/product_repository.dart';
 import '../../../stock/data/stock_repository.dart';
 import '../../../auth/data/auth_repository.dart';
@@ -29,7 +30,7 @@ class _ReceiveGoodsScreenState extends ConsumerState<ReceiveGoodsScreen> {
 
   Future<void> _handleSubmit() async {
     if (_deliveredByController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('กรุณากรอกชื่อผู้ส่งสินค้า')));
+      ToastHelper.warning(context, 'กรุณากรอกชื่อผู้ส่งสินค้า');
       return;
     }
 
@@ -42,7 +43,7 @@ class _ReceiveGoodsScreenState extends ConsumerState<ReceiveGoodsScreen> {
     }
 
     if (updates.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('กรุณากรอกจำนวนอย่างน้อย 1 รายการ')));
+      ToastHelper.warning(context, 'กรุณากรอกจำนวนอย่างน้อย 1 รายการ');
       return;
     }
 
@@ -67,9 +68,7 @@ class _ReceiveGoodsScreenState extends ConsumerState<ReceiveGoodsScreen> {
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('รับสินค้าสำเร็จ'), backgroundColor: Colors.green));
+    ToastHelper.success(context, 'รับสินค้าสำเร็จ');
 
     context.go('/home');
   }

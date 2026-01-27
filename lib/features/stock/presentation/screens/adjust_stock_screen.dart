@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../common/widgets/primary_button.dart';
+import '../../../../common/utils/toast_helper.dart';
 import '../../../products/data/product_repository.dart';
 import '../../../products/domain/product.dart';
 import '../../../stock/data/stock_repository.dart';
@@ -31,23 +32,23 @@ class _AdjustStockScreenState extends ConsumerState<AdjustStockScreen> {
 
   Future<void> _handleSubmit() async {
     if (_selectedProduct == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('กรุณาเลือกสินค้า')));
+      ToastHelper.warning(context, 'กรุณาเลือกสินค้า');
       return;
     }
 
     final quantity = int.tryParse(_quantityController.text) ?? 0;
     if (quantity <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('กรุณากรอกจำนวนที่ถูกต้อง')));
+      ToastHelper.warning(context, 'กรุณากรอกจำนวนที่ถูกต้อง');
       return;
     }
 
     if (_reasonController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('กรุณากรอกเหตุผล')));
+      ToastHelper.warning(context, 'กรุณากรอกเหตุผล');
       return;
     }
 
     if (_selectedProduct!.stock < quantity) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('สต็อกไม่เพียงพอ')));
+      ToastHelper.error(context, 'สต็อกไม่เพียงพอ');
       return;
     }
 
@@ -70,9 +71,7 @@ class _AdjustStockScreenState extends ConsumerState<AdjustStockScreen> {
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('ปรับสต็อกสำเร็จ'), backgroundColor: Colors.green));
+    ToastHelper.success(context, 'ปรับสต็อกสำเร็จ');
 
     context.go('/home');
   }

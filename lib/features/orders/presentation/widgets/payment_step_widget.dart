@@ -1,10 +1,12 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../../app/theme.dart';
 import '../../../../common/widgets/primary_button.dart';
 import '../../../../common/widgets/secondary_button.dart';
 import '../../../../common/widgets/money_text_field.dart';
 import '../../../../common/utils/formatters.dart';
+import '../../../../common/utils/toast_helper.dart';
 
 class PaymentStepWidget extends StatefulWidget {
   final double subtotal;
@@ -78,23 +80,23 @@ class _PaymentStepWidgetState extends State<PaymentStepWidget> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('ไม่สามารถเปิดกล้องได้: $e')));
+      ToastHelper.error(context, 'ไม่สามารถเปิดกล้องได้');
     }
   }
 
   void _handleCompleteOrder() {
     if (_cashAmountController.text.isEmpty && _transferAmountController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('กรุณากรอกจำนวนเงิน')));
+      ToastHelper.warning(context, 'กรุณากรอกจำนวนเงิน');
       return;
     }
 
     if (_totalReceived < widget.total) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('เงินไม่เพียงพอ')));
+      ToastHelper.error(context, 'เงินไม่เพียงพอ');
       return;
     }
 
     if (_transferAmount > 0 && _slipImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('กรุณาถ่ายรูปสลิปโอนเงิน')));
+      ToastHelper.warning(context, 'กรุณาถ่ายรูปสลิปโอนเงิน');
       return;
     }
 
@@ -239,22 +241,127 @@ class _PaymentStepWidgetState extends State<PaymentStepWidget> {
 
   Widget _buildPaymentSummaryCard(bool isPaymentComplete, double remaining) {
     return Card(
-      color: isPaymentComplete ? Colors.green.shade50 : Colors.orange.shade50,
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16),
+        side: BorderSide(
+          color: isPaymentComplete ? POSTheme.successColor.withOpacity(0.3) : POSTheme.warningColor.withOpacity(0.3),
+          width: 2,
+        ),
+      ),
+      color: isPaymentComplete ? POSTheme.successColor.withOpacity(0.08) : POSTheme.warningColor.withOpacity(0.08),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           children: [
             _buildSummaryRow('รับเงินสด', Formatters.formatMoney(_cashAmount)),
             _buildSummaryRow('รับโอน', Formatters.formatMoney(_transferAmount)),
-            const Divider(),
+            const Divider(height: 24),
             _buildSummaryRow('รวมรับ', Formatters.formatMoney(_totalReceived), isTotal: true),
-            if (!isPaymentComplete)
-              _buildSummaryRow('ยังขาดอีก', Formatters.formatMoney(remaining), isTotal: true)
-            else if (_change > 0)
-              _buildSummaryRow('เงินทอน', Formatters.formatMoney(_change), isTotal: true),
+            const SizedBox(height: 16),
+            _buildChangeStatusWidget(isPaymentComplete, remaining),
           ],
         ),
       ),
     );
+  }
+
+  Widget _buildChangeStatusWidget(bool isPaymentComplete, double remaining) {
+    if (!isPaymentComplete) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: POSTheme.dangerColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: POSTheme.dangerColor.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: POSTheme.dangerColor, shape: BoxShape.circle),
+              child: const Icon(Icons.warning_rounded, color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'เงินยังไม่พอ',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'ขาดอีก ${Formatters.formatMoney(remaining)}',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: POSTheme.dangerColor),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    } else if (_change > 0) {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: POSTheme.successColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: POSTheme.successColor.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: POSTheme.successColor, shape: BoxShape.circle),
+              child: const Icon(Icons.attach_money_rounded, color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'ต้องทอนเงิน',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Colors.black54),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'ทอน ${Formatters.formatMoney(_change)}',
+                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: POSTheme.successColor),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    } else {
+      return Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: POSTheme.successColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: POSTheme.successColor.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(color: POSTheme.successColor, shape: BoxShape.circle),
+              child: const Icon(Icons.check_circle_rounded, color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 16),
+            const Expanded(
+              child: Text(
+                'รับเงินครบแล้ว ไม่ต้องทอน',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
   }
 }

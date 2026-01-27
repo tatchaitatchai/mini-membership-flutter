@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../app/theme.dart';
 import '../../../../common/widgets/responsive_scaffold.dart';
 import '../../../auth/data/auth_repository.dart';
 import '../../../shift/data/shift_repository.dart';
@@ -41,50 +42,44 @@ class HomeScreen extends ConsumerWidget {
                 children: [
                   _buildActionCard(
                     context,
-                    icon: Icons.shopping_cart,
+                    icon: Icons.shopping_cart_rounded,
                     title: 'รับออร์เดอร์',
-                    subtitle: 'ลูกค้าเข้ามา',
-                    color: const Color(0xFF6366F1),
+                    color: POSTheme.primaryColor,
                     onTap: () => context.go('/create-order'),
                   ),
                   _buildActionCard(
                     context,
-                    icon: Icons.inventory_2,
+                    icon: Icons.inventory_2_rounded,
                     title: 'รับสินค้า',
-                    subtitle: 'สินค้าเข้า',
-                    color: Colors.green,
+                    color: POSTheme.successColor,
                     onTap: () => context.go('/receive-goods'),
                   ),
                   _buildActionCard(
                     context,
-                    icon: Icons.output,
+                    icon: Icons.output_rounded,
                     title: 'เบิกสินค้า',
-                    subtitle: 'สินค้าออก',
-                    color: Colors.orange,
+                    color: POSTheme.orangeColor,
                     onTap: () => context.go('/withdraw-goods'),
                   ),
                   _buildActionCard(
                     context,
-                    icon: Icons.edit,
+                    icon: Icons.edit_rounded,
                     title: 'ปรับสต็อก',
-                    subtitle: 'ชำรุด/สูญหาย/เสียหาย',
-                    color: Colors.purple,
+                    color: POSTheme.purpleColor,
                     onTap: () => context.go('/adjust-stock'),
                   ),
                   _buildActionCard(
                     context,
-                    icon: Icons.warning,
+                    icon: Icons.warning_rounded,
                     title: 'แจ้งเตือนสต็อกต่ำ',
-                    subtitle: 'ดูรายการแจ้งเตือน',
-                    color: Colors.red,
+                    color: POSTheme.dangerColor,
                     onTap: () => context.go('/low-stock'),
                   ),
                   _buildActionCard(
                     context,
-                    icon: Icons.receipt_long,
+                    icon: Icons.receipt_long_rounded,
                     title: 'ออร์เดอร์',
-                    subtitle: 'ดูและจัดการ',
-                    color: Colors.blue,
+                    color: POSTheme.infoColor,
                     onTap: () => context.go('/orders'),
                   ),
                 ],
@@ -100,37 +95,52 @@ class HomeScreen extends ConsumerWidget {
     BuildContext context, {
     required IconData icon,
     required String title,
-    required String subtitle,
     required Color color,
     required VoidCallback onTap,
   }) {
     return Card(
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+        side: BorderSide(color: color.withOpacity(0.15), width: 2),
+      ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
-                child: Icon(icon, size: 48, color: color),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                title,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 4),
-              Text(
-                subtitle,
-                style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-                textAlign: TextAlign.center,
-              ),
-            ],
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [color.withOpacity(0.05), color.withOpacity(0.02)],
+            ),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: color.withOpacity(0.15),
+                    shape: BoxShape.circle,
+                    boxShadow: [BoxShadow(color: color.withOpacity(0.2), blurRadius: 12, offset: const Offset(0, 4))],
+                  ),
+                  child: Icon(icon, size: 28, color: color),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  title,
+                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey.shade800),
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
           ),
         ),
       ),

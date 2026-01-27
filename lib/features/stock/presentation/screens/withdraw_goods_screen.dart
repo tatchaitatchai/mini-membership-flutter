@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../common/widgets/primary_button.dart';
 import '../../../../common/utils/formatters.dart';
+import '../../../../common/utils/toast_helper.dart';
 import '../../../products/data/product_repository.dart';
 import '../../../stock/data/stock_repository.dart';
 import '../../../auth/data/auth_repository.dart';
@@ -15,14 +16,21 @@ class WithdrawGoodsScreen extends ConsumerStatefulWidget {
   ConsumerState<WithdrawGoodsScreen> createState() => _WithdrawGoodsScreenState();
 }
 
-class _WithdrawGoodsScreenState extends ConsumerState<WithdrawGoodsScreen> {
+class _WithdrawGoodsScreenState extends ConsumerState<WithdrawGoodsScreen> with SingleTickerProviderStateMixin {
   final _sourceBranchController = TextEditingController();
   final Map<String, TextEditingController> _quantityControllers = {};
   bool _isLoading = false;
-  int _selectedTab = 0;
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
 
   @override
   void dispose() {
+    _tabController.dispose();
     _sourceBranchController.dispose();
     for (var controller in _quantityControllers.values) {
       controller.dispose();
@@ -40,7 +48,7 @@ class _WithdrawGoodsScreenState extends ConsumerState<WithdrawGoodsScreen> {
     }
 
     if (updates.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('กรุณากรอกจำนวนอย่างน้อย 1 รายการ')));
+      ToastHelper.warning(context, 'กรุณากรอกจำนวนอย่างน้อย 1 รายการ');
       return;
     }
 
@@ -55,7 +63,7 @@ class _WithdrawGoodsScreenState extends ConsumerState<WithdrawGoodsScreen> {
       final product = productRepo.getProductById(entry.key)!;
       if (product.stock < entry.value) {
         if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('สต็อกไม่เพียงพอสำหรับ ${product.name}')));
+        ToastHelper.error(context, 'สต็อกไม่เพียงพอสำหรับ ${product.name}');
         setState(() => _isLoading = false);
         return;
       }
@@ -72,9 +80,7 @@ class _WithdrawGoodsScreenState extends ConsumerState<WithdrawGoodsScreen> {
 
     if (!mounted) return;
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('เบิกสินค้าสำเร็จ'), backgroundColor: Colors.green));
+    ToastHelper.success(context, 'เบิกสินค้าสำเร็จ');
 
     context.go('/home');
   }
@@ -86,15 +92,14 @@ class _WithdrawGoodsScreenState extends ConsumerState<WithdrawGoodsScreen> {
         title: const Text('เบิกสินค้า'),
         leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.go('/home')),
         bottom: TabBar(
-          controller: null,
-          onTap: (index) => setState(() => _selectedTab = index),
+          controller: _tabController,
           tabs: const [
             Tab(text: 'เบิกสินค้าใหม่'),
             Tab(text: 'ประวัติ'),
           ],
         ),
       ),
-      body: _selectedTab == 0 ? _buildNewWithdrawal() : _buildHistory(),
+      body: TabBarView(controller: _tabController, children: [_buildNewWithdrawal(), _buildHistory()]),
     );
   }
 

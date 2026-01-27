@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../common/widgets/primary_button.dart';
 import '../../../../common/widgets/secondary_button.dart';
+import '../../../../common/utils/toast_helper.dart';
 import '../../../customers/domain/customer.dart';
 import '../../../customers/data/customer_repository.dart';
 
@@ -27,7 +28,7 @@ class _CustomerStepWidgetState extends ConsumerState<CustomerStepWidget> {
   Future<void> _searchCustomer() async {
     final last4 = _last4Controller.text.trim();
     if (last4.length != 4) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('กรอกตัวเลข 4 หลัก')));
+      ToastHelper.warning(context, 'กรอกตัวเลข 4 หลัก');
       return;
     }
 
@@ -39,7 +40,7 @@ class _CustomerStepWidgetState extends ConsumerState<CustomerStepWidget> {
     if (!mounted) return;
 
     if (customers.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('ไม่พบข้อมูลลูกค้า')));
+      ToastHelper.info(context, 'ไม่พบข้อมูลลูกค้า');
     } else if (customers.length == 1) {
       widget.onCustomerSelected(customers.first);
     } else {

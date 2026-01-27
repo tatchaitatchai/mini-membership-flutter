@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../common/widgets/primary_button.dart';
 import '../../../../common/widgets/secondary_button.dart';
 import '../../../../common/utils/validators.dart';
+import '../../../../common/utils/toast_helper.dart';
 import '../../data/auth_repository.dart';
 
 class RegisterBusinessScreen extends ConsumerStatefulWidget {
@@ -47,7 +48,7 @@ class _RegisterBusinessScreenState extends ConsumerState<RegisterBusinessScreen>
     if (!_formKey.currentState!.validate()) return;
 
     if (!_acceptPolicy) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('กรุณายอมรับข้อกำหนดและนโยบาย')));
+      ToastHelper.warning(context, 'กรุณายอมรับข้อกำหนดและนโยบาย');
       return;
     }
 
@@ -63,15 +64,11 @@ class _RegisterBusinessScreenState extends ConsumerState<RegisterBusinessScreen>
     if (!mounted) return;
 
     if (success) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('ลงทะเบียนสำเร็จ! กรุณาเข้าสู่ระบบ'), backgroundColor: Colors.green));
+      ToastHelper.success(context, 'ลงทะเบียนสำเร็จ! กรุณาเข้าสู่ระบบ');
       context.go('/login');
     } else {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('ลงทะเบียนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง')));
+      ToastHelper.error(context, 'ลงทะเบียนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
     }
   }
 

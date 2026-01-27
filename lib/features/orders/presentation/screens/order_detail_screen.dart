@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../common/widgets/danger_button.dart';
 import '../../../../common/widgets/pos_number_pad.dart';
 import '../../../../common/utils/formatters.dart';
+import '../../../../common/utils/toast_helper.dart';
 import '../../data/order_repository.dart';
 import '../../domain/order.dart';
 import '../../../auth/data/auth_repository.dart';
@@ -25,7 +26,7 @@ class OrderDetailScreen extends ConsumerWidget {
     if (!context.mounted) return;
 
     if (!isValid) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('รหัส PIN ผู้จัดการไม่ถูกต้อง')));
+      ToastHelper.error(context, 'รหัส PIN ผู้จัดการไม่ถูกต้อง');
       return;
     }
 
@@ -41,9 +42,7 @@ class OrderDetailScreen extends ConsumerWidget {
 
     if (!context.mounted) return;
 
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(const SnackBar(content: Text('ยกเลิกออร์เดอร์และคืนสต็อกสำเร็จ'), backgroundColor: Colors.green));
+    ToastHelper.success(context, 'ยกเลิกออร์เดอร์และคืนสต็อกสำเร็จ');
 
     context.go('/orders');
   }

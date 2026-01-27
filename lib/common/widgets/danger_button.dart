@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../app/theme.dart';
 
 class DangerButton extends StatelessWidget {
   final String text;
@@ -22,7 +23,7 @@ class DangerButton extends StatelessWidget {
       onPressed: isLoading ? null : onPressed,
       style: ElevatedButton.styleFrom(
         minimumSize: fullWidth ? const Size(double.infinity, 56) : const Size(120, 56),
-        backgroundColor: Colors.red.shade600,
+        backgroundColor: POSTheme.dangerColor,
         foregroundColor: Colors.white,
       ),
       child: isLoading
