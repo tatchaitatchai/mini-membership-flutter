@@ -1,26 +1,37 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../common/services/api_client.dart';
+import 'models/auth_models.dart';
 
 class AuthRepository {
   final FlutterSecureStorage _secureStorage;
   final SharedPreferences _prefs;
+  final ApiClient _apiClient;
 
   static const _storeEmailKey = 'store_email';
+  static const _storeNameKey = 'store_name';
+  static const _storeIdKey = 'store_id';
   static const _staffNameKey = 'staff_name';
+  static const _staffIdKey = 'staff_id';
+  static const _isManagerKey = 'is_manager';
   static const _pinVerifiedKey = 'pin_verified_at';
 
-  static const _validStaffPins = {'1234': 'John Staff', '5678': 'Jane Staff'};
-  static const _validManagerPin = '9999';
-  static const _validStoreEmail = 'demo@store.com';
+  AuthRepository(this._secureStorage, this._prefs, this._apiClient);
 
-  AuthRepository(this._secureStorage, this._prefs);
+  Future<bool> loginStore(String email, String password) async {
+    final response = await _apiClient.post<LoginResponse>(
+      '/api/v2/auth/login',
+      body: {'email': email, 'password': password},
+      fromJson: LoginResponse.fromJson,
+    );
 
-  Future<bool> loginStore(String email) async {
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    if (email.toLowerCase() == _validStoreEmail) {
+    if (response.isSuccess && response.data != null) {
+      final data = response.data!;
+      await _apiClient.setSessionToken(data.sessionToken);
       await _prefs.setString(_storeEmailKey, email);
+      await _prefs.setString(_storeNameKey, data.storeName);
+      await _prefs.setInt(_storeIdKey, data.storeId);
       return true;
     }
     return false;
@@ -35,13 +46,20 @@ class AuthRepository {
   }
 
   Future<String?> verifyStaffPin(String pin) async {
-    await Future.delayed(const Duration(milliseconds: 300));
+    final response = await _apiClient.post<PinVerifyResponse>(
+      '/api/mobile/v1/auth/verify-pin',
+      body: {'pin': pin},
+      requireAuth: true,
+      fromJson: PinVerifyResponse.fromJson,
+    );
 
-    final staffName = _validStaffPins[pin];
-    if (staffName != null) {
-      await _prefs.setString(_staffNameKey, staffName);
+    if (response.isSuccess && response.data != null) {
+      final data = response.data!;
+      await _prefs.setString(_staffNameKey, data.staffName);
+      await _prefs.setInt(_staffIdKey, data.staffId);
+      await _prefs.setBool(_isManagerKey, data.isManager);
       await _secureStorage.write(key: _pinVerifiedKey, value: DateTime.now().millisecondsSinceEpoch.toString());
-      return staffName;
+      return data.staffName;
     }
     return null;
   }
@@ -60,19 +78,59 @@ class AuthRepository {
   }
 
   Future<bool> verifyManagerPin(String pin) async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return pin == _validManagerPin;
+    final isManager = _prefs.getBool(_isManagerKey) ?? false;
+    if (isManager) {
+      return true;
+    }
+    final response = await _apiClient.post<PinVerifyResponse>(
+      '/api/mobile/v1/auth/verify-pin',
+      body: {'pin': pin},
+      requireAuth: true,
+      fromJson: PinVerifyResponse.fromJson,
+    );
+    return response.isSuccess && response.data?.isManager == true;
   }
 
   Future<void> logout() async {
+    await _apiClient.post('/api/mobile/v1/auth/logout', requireAuth: true);
+    await _apiClient.clearSessionToken();
     await _prefs.remove(_storeEmailKey);
+    await _prefs.remove(_storeNameKey);
+    await _prefs.remove(_storeIdKey);
     await _prefs.remove(_staffNameKey);
+    await _prefs.remove(_staffIdKey);
+    await _prefs.remove(_isManagerKey);
     await _secureStorage.delete(key: _pinVerifiedKey);
   }
 
   Future<bool> registerBusiness({required String email, required String password, required String businessName}) async {
-    await Future.delayed(const Duration(seconds: 1));
-    return true;
+    final response = await _apiClient.post<RegisterResponse>(
+      '/api/mobile/v1/auth/register',
+      body: {'email': email, 'password': password, 'business_name': businessName},
+      fromJson: RegisterResponse.fromJson,
+    );
+    return response.isSuccess;
+  }
+
+  Future<bool> validateSession() async {
+    final response = await _apiClient.get<SessionInfo>(
+      '/api/mobile/v1/auth/session',
+      requireAuth: true,
+      fromJson: SessionInfo.fromJson,
+    );
+    return response.isSuccess;
+  }
+
+  String? getStoreName() {
+    return _prefs.getString(_storeNameKey);
+  }
+
+  int? getStoreId() {
+    return _prefs.getInt(_storeIdKey);
+  }
+
+  bool isManager() {
+    return _prefs.getBool(_isManagerKey) ?? false;
   }
 }
 

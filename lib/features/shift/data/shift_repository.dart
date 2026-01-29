@@ -1,22 +1,99 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../common/services/api_client.dart';
 import '../domain/shift.dart';
+import 'models/shift_models.dart';
 
 class ShiftRepository {
   final SharedPreferences _prefs;
+  final ApiClient _apiClient;
   Shift? _currentShift;
 
   static const _shiftOpenKey = 'shift_open';
   static const _shiftIdKey = 'shift_id';
   static const _shiftStartingCashKey = 'shift_starting_cash';
   static const _shiftStartTimeKey = 'shift_start_time';
+  static const _branchIdKey = 'branch_id';
+  static const _branchNameKey = 'branch_name';
 
-  ShiftRepository(this._prefs);
+  ShiftRepository(this._prefs, this._apiClient);
 
   bool isShiftOpen() {
     return _prefs.getBool(_shiftOpenKey) ?? false;
   }
 
+  // API Methods
+  Future<List<BranchInfo>> getBranches() async {
+    final response = await _apiClient.get<ListBranchesResponse>(
+      '/api/v2/branches',
+      requireAuth: true,
+      fromJson: ListBranchesResponse.fromJson,
+    );
+    if (response.isSuccess && response.data != null) {
+      return response.data!.branches;
+    }
+    return [];
+  }
+
+  Future<SelectBranchResponse?> selectBranch(int branchId) async {
+    final response = await _apiClient.post<SelectBranchResponse>(
+      '/api/v2/branches/select',
+      body: {'branch_id': branchId},
+      requireAuth: true,
+      fromJson: SelectBranchResponse.fromJson,
+    );
+    if (response.isSuccess && response.data != null) {
+      await _prefs.setInt(_branchIdKey, response.data!.branchId);
+      await _prefs.setString(_branchNameKey, response.data!.branchName);
+      return response.data;
+    }
+    return null;
+  }
+
+  Future<OpenShiftResponse?> openShiftApi(double startingCash) async {
+    final response = await _apiClient.post<OpenShiftResponse>(
+      '/api/v2/shifts/open',
+      body: {'starting_cash': startingCash},
+      requireAuth: true,
+      fromJson: OpenShiftResponse.fromJson,
+    );
+    if (response.isSuccess && response.data != null) {
+      final data = response.data!;
+      await _prefs.setBool(_shiftOpenKey, true);
+      await _prefs.setInt(_shiftIdKey, data.shiftId);
+      await _prefs.setDouble(_shiftStartingCashKey, data.startingCash);
+      await _prefs.setString(_shiftStartTimeKey, data.startedAt.toIso8601String());
+      return data;
+    }
+    return null;
+  }
+
+  Future<CurrentShiftResponse?> getCurrentShiftApi() async {
+    final response = await _apiClient.get<CurrentShiftResponse>(
+      '/api/v2/shifts/current',
+      requireAuth: true,
+      fromJson: CurrentShiftResponse.fromJson,
+    );
+    if (response.isSuccess && response.data != null) {
+      return response.data;
+    }
+    return null;
+  }
+
+  int? getSelectedBranchId() {
+    return _prefs.getInt(_branchIdKey);
+  }
+
+  String? getSelectedBranchName() {
+    return _prefs.getString(_branchNameKey);
+  }
+
+  Future<void> clearBranchSelection() async {
+    await _prefs.remove(_branchIdKey);
+    await _prefs.remove(_branchNameKey);
+  }
+
+  // Legacy local methods (kept for backward compatibility)
   Future<void> openShift({required String storeName, required String staffName, required double startingCash}) async {
     await Future.delayed(const Duration(milliseconds: 500));
 
@@ -33,7 +110,7 @@ class ShiftRepository {
     );
 
     await _prefs.setBool(_shiftOpenKey, true);
-    await _prefs.setString(_shiftIdKey, shiftId);
+    await _prefs.setString(_shiftIdKey, shiftId.toString());
     await _prefs.setDouble(_shiftStartingCashKey, startingCash);
     await _prefs.setString(_shiftStartTimeKey, now.toIso8601String());
   }

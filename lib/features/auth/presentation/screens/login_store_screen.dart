@@ -5,7 +5,6 @@ import '../../../../common/widgets/primary_button.dart';
 import '../../../../common/widgets/secondary_button.dart';
 import '../../../../common/utils/validators.dart';
 import '../../data/auth_repository.dart';
-import '../../../shift/data/shift_repository.dart';
 
 class LoginStoreScreen extends ConsumerStatefulWidget {
   const LoginStoreScreen({super.key});
@@ -17,12 +16,15 @@ class LoginStoreScreen extends ConsumerStatefulWidget {
 class _LoginStoreScreenState extends ConsumerState<LoginStoreScreen> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
   bool _isLoading = false;
+  bool _obscurePassword = true;
   String? _errorMessage;
 
   @override
   void dispose() {
     _emailController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -35,21 +37,16 @@ class _LoginStoreScreenState extends ConsumerState<LoginStoreScreen> {
     });
 
     final authRepo = ref.read(authRepositoryProvider);
-    final success = await authRepo.loginStore(_emailController.text.trim());
+    final success = await authRepo.loginStore(_emailController.text.trim(), _passwordController.text);
 
     if (!mounted) return;
 
     if (success) {
-      final shiftRepo = ref.read(shiftRepositoryProvider);
-      if (shiftRepo.isShiftOpen()) {
-        context.go('/pin');
-      } else {
-        context.go('/open-shift');
-      }
+      context.go('/select-branch');
     } else {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'อีเมลร้านค้าไม่ถูกต้อง ใช้: demo@store.com';
+        _errorMessage = 'อีเมลร้านค้า หรือ พาสเวิด ไม่ถูกต้อง';
       });
     }
   }
@@ -93,6 +90,31 @@ class _LoginStoreScreenState extends ConsumerState<LoginStoreScreen> {
                     validator: Validators.validateEmail,
                     enabled: !_isLoading,
                   ),
+
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _passwordController,
+                    decoration: InputDecoration(
+                      labelText: 'รหัสผ่าน',
+                      hintText: 'กรอกรหัสผ่าน',
+                      prefixIcon: const Icon(Icons.lock),
+                      suffixIcon: IconButton(
+                        icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
+                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                      ),
+                    ),
+                    obscureText: _obscurePassword,
+                    validator: (value) {
+                      if (value == null || value.isEmpty) {
+                        return 'กรุณากรอกรหัสผ่าน';
+                      }
+                      if (value.length < 6) {
+                        return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
+                      }
+                      return null;
+                    },
+                    enabled: !_isLoading,
+                  ),
                   const SizedBox(height: 24),
                   if (_errorMessage != null)
                     Container(
@@ -109,6 +131,7 @@ class _LoginStoreScreenState extends ConsumerState<LoginStoreScreen> {
                         textAlign: TextAlign.center,
                       ),
                     ),
+                  const SizedBox(height: 24),
                   PrimaryButton(text: 'ดำเนินการต่อ', onPressed: _handleLogin, isLoading: _isLoading, fullWidth: true),
                   const SizedBox(height: 16),
                   SecondaryButton(
@@ -117,11 +140,11 @@ class _LoginStoreScreenState extends ConsumerState<LoginStoreScreen> {
                     fullWidth: true,
                   ),
                   const SizedBox(height: 24),
-                  Text(
-                    'อีเมลทดสอบ: demo@store.com',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                  ),
+                  // Text(
+                  //   'อีเมลทดสอบ: demo@store.com',
+                  //   textAlign: TextAlign.center,
+                  //   style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  // ),
                 ],
               ),
             ),

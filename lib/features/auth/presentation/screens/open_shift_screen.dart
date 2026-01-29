@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../common/widgets/primary_button.dart';
 import '../../../../common/widgets/money_text_field.dart';
-import '../../data/auth_repository.dart';
 import '../../../shift/data/shift_repository.dart';
 
 class OpenShiftScreen extends ConsumerStatefulWidget {
@@ -17,6 +16,7 @@ class _OpenShiftScreenState extends ConsumerState<OpenShiftScreen> {
   final _formKey = GlobalKey<FormState>();
   final _startingCashController = TextEditingController();
   bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -27,19 +27,26 @@ class _OpenShiftScreenState extends ConsumerState<OpenShiftScreen> {
   Future<void> _handleOpenShift() async {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
 
-    final authRepo = ref.read(authRepositoryProvider);
     final shiftRepo = ref.read(shiftRepositoryProvider);
-
-    final storeEmail = authRepo.getStoreEmail() ?? 'Demo Store';
     final startingCash = double.tryParse(_startingCashController.text) ?? 0;
 
-    await shiftRepo.openShift(storeName: storeEmail, staffName: 'Staff', startingCash: startingCash);
+    final result = await shiftRepo.openShiftApi(startingCash);
 
     if (!mounted) return;
 
-    context.go('/pin');
+    if (result != null) {
+      context.go('/pin');
+    } else {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'ไม่สามารถเปิดกะได้ กรุณาลองใหม่อีกครั้ง';
+      });
+    }
   }
 
   @override
@@ -81,6 +88,21 @@ class _OpenShiftScreenState extends ConsumerState<OpenShiftScreen> {
                     textAlign: TextAlign.center,
                     style: TextStyle(fontSize: 14, color: Colors.grey.shade600, fontStyle: FontStyle.italic),
                   ),
+                  if (_errorMessage != null)
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      margin: const EdgeInsets.only(bottom: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.red.shade200),
+                      ),
+                      child: Text(
+                        _errorMessage!,
+                        style: TextStyle(color: Colors.red.shade700),
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
                   const SizedBox(height: 32),
                   PrimaryButton(
                     text: 'เปิดกะการทำงาน',

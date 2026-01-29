@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../features/auth/presentation/screens/login_store_screen.dart';
 import '../features/auth/presentation/screens/register_business_screen.dart';
+import '../features/auth/presentation/screens/select_branch_screen.dart';
 import '../features/auth/presentation/screens/staff_pin_screen.dart';
 import '../features/auth/presentation/screens/open_shift_screen.dart';
 import '../features/auth/presentation/screens/end_shift_screen.dart';
@@ -29,18 +30,38 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       final isLoginRoute = state.matchedLocation == '/login';
       final isRegisterRoute = state.matchedLocation == '/register';
+      final isSelectBranchRoute = state.matchedLocation == '/select-branch';
       final isOpenShiftRoute = state.matchedLocation == '/open-shift';
       final isPinRoute = state.matchedLocation == '/pin';
+
+      final hasBranchSelected = shiftRepo.getSelectedBranchId() != null;
 
       if (!isStoreLoggedIn && !isLoginRoute && !isRegisterRoute) {
         return '/login';
       }
 
-      if (isStoreLoggedIn && !isShiftOpen && !isOpenShiftRoute && !isLoginRoute && !isRegisterRoute) {
+      if (isStoreLoggedIn && !hasBranchSelected && !isSelectBranchRoute && !isLoginRoute && !isRegisterRoute) {
+        return '/select-branch';
+      }
+
+      if (isStoreLoggedIn &&
+          hasBranchSelected &&
+          !isShiftOpen &&
+          !isOpenShiftRoute &&
+          !isLoginRoute &&
+          !isRegisterRoute &&
+          !isSelectBranchRoute) {
         return '/open-shift';
       }
 
-      if (isStoreLoggedIn && isShiftOpen && !isPinVerified && !isPinRoute && !isLoginRoute && !isRegisterRoute) {
+      if (isStoreLoggedIn &&
+          hasBranchSelected &&
+          isShiftOpen &&
+          !isPinVerified &&
+          !isPinRoute &&
+          !isLoginRoute &&
+          !isRegisterRoute &&
+          !isSelectBranchRoute) {
         return '/pin';
       }
 
@@ -49,6 +70,7 @@ final routerProvider = Provider<GoRouter>((ref) {
     routes: [
       GoRoute(path: '/login', builder: (context, state) => const LoginStoreScreen()),
       GoRoute(path: '/register', builder: (context, state) => const RegisterBusinessScreen()),
+      GoRoute(path: '/select-branch', builder: (context, state) => const SelectBranchScreen()),
       GoRoute(path: '/open-shift', builder: (context, state) => const OpenShiftScreen()),
       GoRoute(path: '/pin', builder: (context, state) => const StaffPinScreen()),
       GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),

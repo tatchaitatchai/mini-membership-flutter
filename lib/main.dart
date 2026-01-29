@@ -25,8 +25,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'app/app.dart';
+import 'common/services/api_client.dart';
 import 'features/auth/data/auth_repository.dart';
 import 'features/shift/data/shift_repository.dart';
+
+const String apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:8085');
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,8 +38,9 @@ void main() async {
 
   final sharedPreferences = await SharedPreferences.getInstance();
   const secureStorage = FlutterSecureStorage();
-  final authRepository = AuthRepository(secureStorage, sharedPreferences);
-  final shiftRepository = ShiftRepository(sharedPreferences);
+  final apiClient = ApiClient(baseUrl: apiBaseUrl, secureStorage: secureStorage);
+  final authRepository = AuthRepository(secureStorage, sharedPreferences, apiClient);
+  final shiftRepository = ShiftRepository(sharedPreferences, apiClient);
 
   runApp(
     ProviderScope(
