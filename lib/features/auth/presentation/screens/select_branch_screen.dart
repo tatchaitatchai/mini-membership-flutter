@@ -165,10 +165,7 @@ class _SelectBranchScreenState extends ConsumerState<SelectBranchScreen> {
                   children: [
                     Text(
                       branch.branchName,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      ),
+                      style: TextStyle(fontSize: 16, fontWeight: isSelected ? FontWeight.bold : FontWeight.normal),
                     ),
                     const SizedBox(height: 4),
                     Row(
@@ -181,10 +178,7 @@ class _SelectBranchScreenState extends ConsumerState<SelectBranchScreen> {
                         const SizedBox(width: 4),
                         Text(
                           branch.isShiftOpened ? 'กะเปิดอยู่' : 'ยังไม่เปิดกะ',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: branch.isShiftOpened ? Colors.green : Colors.orange,
-                          ),
+                          style: TextStyle(fontSize: 12, color: branch.isShiftOpened ? Colors.green : Colors.orange),
                         ),
                       ],
                     ),

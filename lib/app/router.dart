@@ -34,18 +34,20 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isOpenShiftRoute = state.matchedLocation == '/open-shift';
       final isPinRoute = state.matchedLocation == '/pin';
 
+      final hasBranchFromLogin = authRepo.getBranchId() != null;
       final hasBranchSelected = shiftRepo.getSelectedBranchId() != null;
+      final hasBranch = hasBranchFromLogin || hasBranchSelected;
 
       if (!isStoreLoggedIn && !isLoginRoute && !isRegisterRoute) {
         return '/login';
       }
 
-      if (isStoreLoggedIn && !hasBranchSelected && !isSelectBranchRoute && !isLoginRoute && !isRegisterRoute) {
+      if (isStoreLoggedIn && !hasBranch && !isSelectBranchRoute && !isLoginRoute && !isRegisterRoute) {
         return '/select-branch';
       }
 
       if (isStoreLoggedIn &&
-          hasBranchSelected &&
+          hasBranch &&
           !isShiftOpen &&
           !isOpenShiftRoute &&
           !isLoginRoute &&
@@ -55,7 +57,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       }
 
       if (isStoreLoggedIn &&
-          hasBranchSelected &&
+          hasBranch &&
           isShiftOpen &&
           !isPinVerified &&
           !isPinRoute &&

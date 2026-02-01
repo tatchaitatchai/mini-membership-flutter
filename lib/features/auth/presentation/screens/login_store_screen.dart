@@ -37,12 +37,16 @@ class _LoginStoreScreenState extends ConsumerState<LoginStoreScreen> {
     });
 
     final authRepo = ref.read(authRepositoryProvider);
-    final success = await authRepo.loginStore(_emailController.text.trim(), _passwordController.text);
+    final loginResponse = await authRepo.loginStore(_emailController.text.trim(), _passwordController.text);
 
     if (!mounted) return;
 
-    if (success) {
-      context.go('/select-branch');
+    if (loginResponse != null) {
+      if (loginResponse.branchId != null) {
+        context.go('/open-shift');
+      } else {
+        context.go('/select-branch');
+      }
     } else {
       setState(() {
         _isLoading = false;

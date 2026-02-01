@@ -12,6 +12,7 @@ class AuthRepository {
   static const _storeEmailKey = 'store_email';
   static const _storeNameKey = 'store_name';
   static const _storeIdKey = 'store_id';
+  static const _branchIdKey = 'branch_id';
   static const _staffNameKey = 'staff_name';
   static const _staffIdKey = 'staff_id';
   static const _isManagerKey = 'is_manager';
@@ -19,7 +20,7 @@ class AuthRepository {
 
   AuthRepository(this._secureStorage, this._prefs, this._apiClient);
 
-  Future<bool> loginStore(String email, String password) async {
+  Future<LoginResponse?> loginStore(String email, String password) async {
     final response = await _apiClient.post<LoginResponse>(
       '/api/v2/auth/login',
       body: {'email': email, 'password': password},
@@ -32,9 +33,16 @@ class AuthRepository {
       await _prefs.setString(_storeEmailKey, email);
       await _prefs.setString(_storeNameKey, data.storeName);
       await _prefs.setInt(_storeIdKey, data.storeId);
-      return true;
+      if (data.branchId != null) {
+        await _prefs.setInt(_branchIdKey, data.branchId!);
+      }
+      return data;
     }
-    return false;
+    return null;
+  }
+
+  int? getBranchId() {
+    return _prefs.getInt(_branchIdKey);
   }
 
   bool isStoreLoggedIn() {
@@ -47,7 +55,7 @@ class AuthRepository {
 
   Future<String?> verifyStaffPin(String pin) async {
     final response = await _apiClient.post<PinVerifyResponse>(
-      '/api/mobile/v1/auth/verify-pin',
+      '/api/v2/auth/verify-pin',
       body: {'pin': pin},
       requireAuth: true,
       fromJson: PinVerifyResponse.fromJson,

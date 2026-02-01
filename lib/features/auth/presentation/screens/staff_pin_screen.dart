@@ -51,7 +51,7 @@ class _StaffPinScreenState extends ConsumerState<StaffPinScreen> {
     } else {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'รหัส PIN ไม่ถูกต้อง ลอง 1234 หรือ 5678';
+        _errorMessage = 'รหัส PIN ไม่ถูกต้อง';
         _pin = '';
       });
     }

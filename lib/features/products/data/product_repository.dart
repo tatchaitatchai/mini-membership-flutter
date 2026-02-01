@@ -1,32 +1,50 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../common/services/api_client.dart';
+import '../../orders/data/models/order_models.dart';
 import '../domain/product.dart';
 
 class ProductRepository {
-  final List<Product> _products = [
-    const Product(id: 'P001', name: 'Espresso', category: 'Coffee', price: 3.50, stock: 50),
-    const Product(id: 'P002', name: 'Cappuccino', category: 'Coffee', price: 4.50, stock: 45),
-    const Product(id: 'P003', name: 'Latte', category: 'Coffee', price: 4.75, stock: 40),
-    const Product(id: 'P004', name: 'Americano', category: 'Coffee', price: 3.75, stock: 38),
-    const Product(id: 'P005', name: 'Croissant', category: 'Pastry', price: 3.00, stock: 25, lowStockThreshold: 10),
-    const Product(id: 'P006', name: 'Muffin', category: 'Pastry', price: 2.50, stock: 8, lowStockThreshold: 10),
-    const Product(id: 'P007', name: 'Sandwich', category: 'Food', price: 7.50, stock: 20),
-    const Product(id: 'P008', name: 'Bagel', category: 'Food', price: 3.50, stock: 15),
-    const Product(id: 'P009', name: 'Orange Juice', category: 'Beverage', price: 4.00, stock: 30),
-    const Product(id: 'P010', name: 'Iced Tea', category: 'Beverage', price: 3.50, stock: 4, lowStockThreshold: 5),
-  ];
+  final ApiClient _apiClient;
+  List<Product> _products = [];
+
+  ProductRepository(this._apiClient);
 
   Future<List<Product>> getAllProducts() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return List.from(_products);
+    final response = await _apiClient.get<ListProductsResponse>(
+      '/api/v2/products',
+      requireAuth: true,
+      fromJson: ListProductsResponse.fromJson,
+    );
+
+    if (response.isSuccess && response.data != null) {
+      _products = response.data!.products
+          .map(
+            (p) => Product(
+              id: p.id.toString(),
+              name: p.productName,
+              category: p.categoryName ?? 'Uncategorized',
+              price: p.basePrice,
+              stock: p.onStock,
+              imageUrl: p.imagePath,
+            ),
+          )
+          .toList();
+      return _products;
+    }
+    return _products;
   }
 
   Future<List<String>> getCategories() async {
-    await Future.delayed(const Duration(milliseconds: 200));
+    if (_products.isEmpty) {
+      await getAllProducts();
+    }
     return _products.map((p) => p.category).toSet().toList();
   }
 
   Future<List<Product>> getProductsByCategory(String category) async {
-    await Future.delayed(const Duration(milliseconds: 300));
+    if (_products.isEmpty) {
+      await getAllProducts();
+    }
     return _products.where((p) => p.category == category).toList();
   }
 
@@ -39,7 +57,6 @@ class ProductRepository {
   }
 
   Future<void> updateStock(String productId, int newStock) async {
-    await Future.delayed(const Duration(milliseconds: 200));
     final index = _products.indexWhere((p) => p.id == productId);
     if (index != -1) {
       _products[index] = _products[index].copyWith(stock: newStock);
@@ -65,14 +82,17 @@ class ProductRepository {
   }
 
   Future<void> updateLowStockThreshold(String productId, int threshold) async {
-    await Future.delayed(const Duration(milliseconds: 200));
     final index = _products.indexWhere((p) => p.id == productId);
     if (index != -1) {
       _products[index] = _products[index].copyWith(lowStockThreshold: threshold);
     }
   }
+
+  void clearCache() {
+    _products = [];
+  }
 }
 
 final productRepositoryProvider = Provider<ProductRepository>((ref) {
-  return ProductRepository();
+  throw UnimplementedError('ProductRepository must be initialized in main');
 });

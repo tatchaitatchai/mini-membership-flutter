@@ -1,12 +1,14 @@
 class LoginResponse {
   final String sessionToken;
   final int storeId;
+  final int? branchId;
   final String storeName;
   final DateTime expiresAt;
 
   LoginResponse({
     required this.sessionToken,
     required this.storeId,
+    this.branchId,
     required this.storeName,
     required this.expiresAt,
   });
@@ -15,6 +17,7 @@ class LoginResponse {
     return LoginResponse(
       sessionToken: json['session_token'] as String,
       storeId: json['store_id'] as int,
+      branchId: json['branch_id'] as int?,
       storeName: json['store_name'] as String,
       expiresAt: DateTime.parse(json['expires_at'] as String),
     );
@@ -58,11 +61,7 @@ class PinVerifyResponse {
   final String staffName;
   final bool isManager;
 
-  PinVerifyResponse({
-    required this.staffId,
-    required this.staffName,
-    required this.isManager,
-  });
+  PinVerifyResponse({required this.staffId, required this.staffName, required this.isManager});
 
   factory PinVerifyResponse.fromJson(Map<String, dynamic> json) {
     return PinVerifyResponse(
@@ -78,11 +77,7 @@ class RegisterResponse {
   final String storeName;
   final String message;
 
-  RegisterResponse({
-    required this.storeId,
-    required this.storeName,
-    required this.message,
-  });
+  RegisterResponse({required this.storeId, required this.storeName, required this.message});
 
   factory RegisterResponse.fromJson(Map<String, dynamic> json) {
     return RegisterResponse(

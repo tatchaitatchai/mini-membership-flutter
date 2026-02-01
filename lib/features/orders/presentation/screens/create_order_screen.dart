@@ -9,6 +9,7 @@ import '../../../products/data/product_repository.dart';
 import '../../../promotions/domain/promotion.dart';
 import '../../domain/order.dart';
 import '../../data/order_repository.dart';
+import '../../data/models/order_models.dart';
 import '../../../auth/data/auth_repository.dart';
 import '../widgets/customer_step_widget.dart';
 import '../widgets/products_step_widget.dart';
@@ -52,10 +53,13 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
 
     final change = cashAmount > 0 ? ((cashAmount + transferAmount) - _total).clamp(0.0, cashAmount) : 0.0;
 
-    final items = <OrderItem>[];
+    // Build API request items
+    final apiItems = <OrderItemRequest>[];
+    final orderItems = <OrderItem>[];
     for (var entry in _cart.entries) {
       final product = ref.read(productRepositoryProvider).getProductById(entry.key)!;
-      items.add(
+      apiItems.add(OrderItemRequest(productId: int.parse(product.id), quantity: entry.value, price: product.price));
+      orderItems.add(
         OrderItem(
           productId: product.id,
           productName: product.name,
@@ -64,32 +68,64 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
           total: product.price * entry.value,
         ),
       );
-      await ref.read(productRepositoryProvider).reduceStock(product.id, entry.value);
     }
 
-    final order = Order(
-      id: 'ORD_${DateTime.now().millisecondsSinceEpoch}',
-      customerId: _selectedCustomer?.id ?? 'guest',
-      customerName: _selectedCustomer?.fullName ?? 'Guest',
-      items: items,
-      subtotal: _subtotal,
-      discount: _discount,
-      total: _total,
-      cashReceived: cashAmount,
-      transferAmount: transferAmount,
-      change: change,
-      promotionId: _selectedPromotion?.id,
-      attachedSlipUrl: slipImage?.path,
-      status: OrderStatus.completed,
-      createdAt: DateTime.now(),
-      createdBy: ref.read(authRepositoryProvider).getCurrentStaffName() ?? 'Staff',
-    );
+    // Build payments
+    final payments = <PaymentRequest>[];
+    if (cashAmount > 0) {
+      payments.add(PaymentRequest(method: 'CASH', amount: cashAmount));
+    }
+    if (transferAmount > 0) {
+      payments.add(PaymentRequest(method: 'TRANSFER', amount: transferAmount));
+    }
 
-    await ref.read(orderRepositoryProvider).createOrder(order);
+    // Call API to create order
+    final orderRepo = ref.read(orderRepositoryProvider);
+    final apiResponse = await orderRepo.createOrderApi(
+      customerId: _selectedCustomer?.id != 'guest' ? int.tryParse(_selectedCustomer?.id ?? '') : null,
+      items: apiItems,
+      subtotal: _subtotal,
+      discountTotal: _discount,
+      totalPrice: _total,
+      payments: payments,
+      changeAmount: change,
+      promotionId: _selectedPromotion != null ? int.tryParse(_selectedPromotion!.id) : null,
+    );
 
     if (!mounted) return;
 
-    _showOrderSuccessDialog(order);
+    if (apiResponse != null) {
+      // Update local stock cache
+      for (var entry in _cart.entries) {
+        await ref.read(productRepositoryProvider).reduceStock(entry.key, entry.value);
+      }
+
+      final order = Order(
+        id: apiResponse.orderId.toString(),
+        customerId: _selectedCustomer?.id ?? 'guest',
+        customerName: _selectedCustomer?.fullName ?? 'Guest',
+        items: orderItems,
+        subtotal: _subtotal,
+        discount: _discount,
+        total: _total,
+        cashReceived: cashAmount,
+        transferAmount: transferAmount,
+        change: change,
+        promotionId: _selectedPromotion?.id,
+        attachedSlipUrl: slipImage?.path,
+        status: OrderStatus.completed,
+        createdAt: apiResponse.createdAt,
+        createdBy: ref.read(authRepositoryProvider).getCurrentStaffName() ?? 'Staff',
+      );
+
+      await orderRepo.createOrder(order);
+      _showOrderSuccessDialog(order);
+    } else {
+      setState(() => _isLoading = false);
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('ไม่สามารถสร้างออร์เดอร์ได้ กรุณาลองใหม่')));
+    }
   }
 
   void _showOrderSuccessDialog(Order order) {

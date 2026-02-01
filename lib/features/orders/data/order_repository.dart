@@ -1,21 +1,57 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../common/services/api_client.dart';
 import '../domain/order.dart';
+import 'models/order_models.dart';
 
 class OrderRepository {
+  final ApiClient _apiClient;
   final List<Order> _orders = [];
 
+  OrderRepository(this._apiClient);
+
+  Future<CreateOrderResponse?> createOrderApi({
+    int? customerId,
+    required List<OrderItemRequest> items,
+    required double subtotal,
+    required double discountTotal,
+    required double totalPrice,
+    required List<PaymentRequest> payments,
+    required double changeAmount,
+    int? promotionId,
+  }) async {
+    final request = CreateOrderRequest(
+      customerId: customerId,
+      items: items,
+      subtotal: subtotal,
+      discountTotal: discountTotal,
+      totalPrice: totalPrice,
+      payments: payments,
+      changeAmount: changeAmount,
+      promotionId: promotionId,
+    );
+
+    final response = await _apiClient.post<CreateOrderResponse>(
+      '/api/v2/orders',
+      body: request.toJson(),
+      requireAuth: true,
+      fromJson: CreateOrderResponse.fromJson,
+    );
+
+    if (response.isSuccess && response.data != null) {
+      return response.data;
+    }
+    return null;
+  }
+
   Future<void> createOrder(Order order) async {
-    await Future.delayed(const Duration(milliseconds: 500));
     _orders.add(order);
   }
 
   Future<List<Order>> getAllOrders() async {
-    await Future.delayed(const Duration(milliseconds: 300));
     return List.from(_orders.reversed);
   }
 
   Future<Order?> getOrderById(String id) async {
-    await Future.delayed(const Duration(milliseconds: 200));
     try {
       return _orders.firstWhere((o) => o.id == id);
     } catch (_) {
@@ -24,7 +60,6 @@ class OrderRepository {
   }
 
   Future<void> cancelOrder(String orderId, String managerName, String reason) async {
-    await Future.delayed(const Duration(milliseconds: 500));
     final index = _orders.indexWhere((o) => o.id == orderId);
     if (index != -1) {
       _orders[index] = _orders[index].copyWith(
@@ -46,5 +81,5 @@ class OrderRepository {
 }
 
 final orderRepositoryProvider = Provider<OrderRepository>((ref) {
-  return OrderRepository();
+  throw UnimplementedError('OrderRepository must be initialized in main');
 });

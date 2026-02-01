@@ -28,6 +28,9 @@ import 'app/app.dart';
 import 'common/services/api_client.dart';
 import 'features/auth/data/auth_repository.dart';
 import 'features/shift/data/shift_repository.dart';
+import 'features/products/data/product_repository.dart';
+import 'features/customers/data/customer_repository.dart';
+import 'features/orders/data/order_repository.dart';
 
 const String apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:8085');
 
@@ -41,12 +44,18 @@ void main() async {
   final apiClient = ApiClient(baseUrl: apiBaseUrl, secureStorage: secureStorage);
   final authRepository = AuthRepository(secureStorage, sharedPreferences, apiClient);
   final shiftRepository = ShiftRepository(sharedPreferences, apiClient);
+  final productRepository = ProductRepository(apiClient);
+  final customerRepository = CustomerRepository(apiClient);
+  final orderRepository = OrderRepository(apiClient);
 
   runApp(
     ProviderScope(
       overrides: [
         authRepositoryProvider.overrideWithValue(authRepository),
         shiftRepositoryProvider.overrideWithValue(shiftRepository),
+        productRepositoryProvider.overrideWithValue(productRepository),
+        customerRepositoryProvider.overrideWithValue(customerRepository),
+        orderRepositoryProvider.overrideWithValue(orderRepository),
       ],
       child: const POSMeApp(),
     ),

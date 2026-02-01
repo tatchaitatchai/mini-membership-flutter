@@ -120,17 +120,26 @@ class ShiftRepository {
 
     if (_currentShift != null) return _currentShift;
 
-    final shiftId = _prefs.getString(_shiftIdKey);
+    // Handle both int and string for backward compatibility
+    String? shiftIdStr;
+    final shiftIdInt = _prefs.getInt(_shiftIdKey);
+    if (shiftIdInt != null) {
+      shiftIdStr = shiftIdInt.toString();
+    } else {
+      shiftIdStr = _prefs.getString(_shiftIdKey);
+    }
+
     final startingCash = _prefs.getDouble(_shiftStartingCashKey);
     final startTimeStr = _prefs.getString(_shiftStartTimeKey);
+    final branchName = _prefs.getString(_branchNameKey);
 
-    if (shiftId == null || startingCash == null || startTimeStr == null) {
+    if (shiftIdStr == null || startingCash == null || startTimeStr == null) {
       return null;
     }
 
     _currentShift = Shift(
-      id: shiftId,
-      storeName: 'Demo Store',
+      id: shiftIdStr,
+      storeName: branchName ?? 'Store',
       staffName: 'Staff',
       startingCash: startingCash,
       startedAt: DateTime.parse(startTimeStr),
