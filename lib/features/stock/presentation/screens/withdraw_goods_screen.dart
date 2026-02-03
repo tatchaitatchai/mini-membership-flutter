@@ -6,8 +6,7 @@ import '../../../../common/utils/formatters.dart';
 import '../../../../common/utils/toast_helper.dart';
 import '../../../products/data/product_repository.dart';
 import '../../../stock/data/stock_repository.dart';
-import '../../../auth/data/auth_repository.dart';
-import '../../../stock/domain/stock_log.dart';
+import '../../../stock/domain/stock_transfer.dart';
 
 class WithdrawGoodsScreen extends ConsumerStatefulWidget {
   const WithdrawGoodsScreen({super.key});
@@ -54,35 +53,31 @@ class _WithdrawGoodsScreenState extends ConsumerState<WithdrawGoodsScreen> with 
 
     setState(() => _isLoading = true);
 
-    final staffName = ref.read(authRepositoryProvider).getCurrentStaffName() ?? 'Staff';
-    final sourceBranch = _sourceBranchController.text.trim().isNotEmpty ? _sourceBranchController.text.trim() : null;
-    final productRepo = ref.read(productRepositoryProvider);
+    final note = _sourceBranchController.text.trim().isNotEmpty ? _sourceBranchController.text.trim() : null;
     final stockRepo = ref.read(stockRepositoryProvider);
 
-    for (var entry in updates.entries) {
-      final product = productRepo.getProductById(entry.key)!;
-      if (product.stock < entry.value) {
-        if (!mounted) return;
-        ToastHelper.error(context, 'สต็อกไม่เพียงพอสำหรับ ${product.name}');
+    // Build items list for API
+    final items = updates.entries
+        .map((entry) => {'product_id': int.parse(entry.key), 'quantity': entry.value})
+        .toList();
+
+    try {
+      final result = await stockRepo.withdrawGoods(items: items, note: note);
+
+      if (!mounted) return;
+
+      if (result != null) {
+        ToastHelper.success(context, 'เบิกสินค้าสำเร็จ');
+        context.go('/home');
+      } else {
+        ToastHelper.error(context, 'เกิดข้อผิดพลาดในการเบิกสินค้า');
         setState(() => _isLoading = false);
-        return;
       }
-
-      await stockRepo.withdrawGoods(
-        productId: product.id,
-        productName: product.name,
-        quantity: entry.value,
-        staffName: staffName,
-        sourceBranch: sourceBranch,
-      );
-      await productRepo.reduceStock(product.id, entry.value);
+    } catch (e) {
+      if (!mounted) return;
+      ToastHelper.error(context, 'เกิดข้อผิดพลาด: $e');
+      setState(() => _isLoading = false);
     }
-
-    if (!mounted) return;
-
-    ToastHelper.success(context, 'เบิกสินค้าสำเร็จ');
-
-    context.go('/home');
   }
 
   @override
@@ -191,34 +186,59 @@ class _WithdrawGoodsScreenState extends ConsumerState<WithdrawGoodsScreen> with 
   }
 
   Widget _buildHistory() {
-    return FutureBuilder(
-      future: ref.read(stockRepositoryProvider).getLogsByType(StockLogType.withdraw),
+    return FutureBuilder<StockTransferListResponse?>(
+      future: ref.read(stockRepositoryProvider).getTransfers(),
       builder: (context, snapshot) {
-        if (!snapshot.hasData) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final logs = snapshot.data!;
-        if (logs.isEmpty) {
+        final response = snapshot.data;
+        if (response == null || response.transfers.isEmpty) {
           return const Center(child: Text('ไม่มีประวัติการเบิกสินค้า'));
         }
 
         return ListView.builder(
           padding: const EdgeInsets.all(24),
-          itemCount: logs.length,
+          itemCount: response.transfers.length,
           itemBuilder: (context, index) {
-            final log = logs[index];
+            final transfer = response.transfers[index];
             return Card(
               margin: const EdgeInsets.only(bottom: 16),
-              child: ListTile(
-                title: Text(log.productName),
-                subtitle: Column(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('จำนวน: ${log.quantity}'),
-                    Text('โดย: ${log.staffName}'),
-                    if (log.sourceBranch != null) Text('สาขา: ${log.sourceBranch}'),
-                    Text('วันที่: ${Formatters.formatDateTime(log.createdAt)}'),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'รายการ #${transfer.id}',
+                          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                        ),
+                        _buildStatusChip(transfer.status),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    ...transfer.items.map(
+                      (item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [Text(item.productName), Text('x${item.sendCount}')],
+                        ),
+                      ),
+                    ),
+                    const Divider(),
+                    if (transfer.sentByName != null)
+                      Text('โดย: ${transfer.sentByName}', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                    if (transfer.note != null)
+                      Text('หมายเหตุ: ${transfer.note}', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                    Text(
+                      'วันที่: ${Formatters.formatDateTime(transfer.createdAt)}',
+                      style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                    ),
                   ],
                 ),
               ),
@@ -226,6 +246,40 @@ class _WithdrawGoodsScreenState extends ConsumerState<WithdrawGoodsScreen> with 
           },
         );
       },
+    );
+  }
+
+  Widget _buildStatusChip(String status) {
+    Color color;
+    String label;
+    switch (status) {
+      case 'SENT':
+        color = Colors.orange;
+        label = 'ส่งแล้ว';
+        break;
+      case 'RECEIVED':
+        color = Colors.green;
+        label = 'รับแล้ว';
+        break;
+      case 'CANCELLED':
+        color = Colors.red;
+        label = 'ยกเลิก';
+        break;
+      default:
+        color = Colors.grey;
+        label = status;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w500),
+      ),
     );
   }
 }
