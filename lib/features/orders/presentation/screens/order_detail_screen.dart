@@ -8,7 +8,6 @@ import '../../../../common/utils/toast_helper.dart';
 import '../../data/order_repository.dart';
 import '../../domain/order.dart';
 import '../../../auth/data/auth_repository.dart';
-import '../../../products/data/product_repository.dart';
 
 class OrderDetailScreen extends ConsumerWidget {
   final String orderId;
@@ -16,17 +15,17 @@ class OrderDetailScreen extends ConsumerWidget {
   const OrderDetailScreen({super.key, required this.orderId});
 
   Future<void> _cancelOrder(BuildContext context, WidgetRef ref, Order order) async {
-    final managerPin = await showDialog<String>(context: context, builder: (context) => const _ManagerPinDialog());
+    final pinResult = await showDialog<String>(context: context, builder: (context) => const _StaffPinDialog());
 
-    if (managerPin == null) return;
+    if (pinResult == null) return;
 
     final authRepo = ref.read(authRepositoryProvider);
-    final isValid = await authRepo.verifyManagerPin(managerPin);
+    final staffName = await authRepo.verifyStaffPin(pinResult);
 
     if (!context.mounted) return;
 
-    if (!isValid) {
-      ToastHelper.error(context, 'รหัส PIN ผู้จัดการไม่ถูกต้อง');
+    if (staffName == null) {
+      ToastHelper.error(context, 'รหัส PIN ไม่ถูกต้อง');
       return;
     }
 
@@ -34,15 +33,11 @@ class OrderDetailScreen extends ConsumerWidget {
 
     if (reason == null || reason.isEmpty) return;
 
-    for (var item in order.items) {
-      await ref.read(productRepositoryProvider).addStock(item.productId, item.quantity);
-    }
-
-    await ref.read(orderRepositoryProvider).cancelOrder(orderId, 'Manager', reason);
+    await ref.read(orderRepositoryProvider).cancelOrder(orderId, staffName, reason);
 
     if (!context.mounted) return;
 
-    ToastHelper.success(context, 'ยกเลิกออร์เดอร์และคืนสต็อกสำเร็จ');
+    ToastHelper.success(context, 'ยกเลิกออร์เดอร์สำเร็จ');
 
     context.go('/orders');
   }
@@ -177,7 +172,7 @@ class OrderDetailScreen extends ConsumerWidget {
                 if (order.status == OrderStatus.completed) ...[
                   const SizedBox(height: 24),
                   DangerButton(
-                    text: 'ยกเลิกออร์เดอร์ (ต้องใช้ PIN ผู้จัดการ)',
+                    text: 'ยกเลิกออร์เดอร์ (ต้องใช้ PIN)',
                     icon: Icons.cancel,
                     onPressed: () => _cancelOrder(context, ref, order),
                     fullWidth: true,
@@ -224,14 +219,14 @@ class OrderDetailScreen extends ConsumerWidget {
   }
 }
 
-class _ManagerPinDialog extends StatefulWidget {
-  const _ManagerPinDialog();
+class _StaffPinDialog extends StatefulWidget {
+  const _StaffPinDialog();
 
   @override
-  State<_ManagerPinDialog> createState() => _ManagerPinDialogState();
+  State<_StaffPinDialog> createState() => _StaffPinDialogState();
 }
 
-class _ManagerPinDialogState extends State<_ManagerPinDialog> {
+class _StaffPinDialogState extends State<_StaffPinDialog> {
   String _pin = '';
 
   void _onNumberPressed(String number) {
@@ -252,11 +247,11 @@ class _ManagerPinDialogState extends State<_ManagerPinDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('การอนุมัติจากผู้จัดการ'),
+      title: const Text('ยืนยันตัวตน'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('กรอกรหัส PIN ผู้จัดการเพื่อยกเลิกออร์เดอร์'),
+          const Text('กรอกรหัส PIN ของคุณเพื่อยกเลิกออร์เดอร์'),
           const SizedBox(height: 24),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,

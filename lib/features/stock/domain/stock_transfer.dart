@@ -42,7 +42,8 @@ class StockTransfer {
       sentAt: json['sent_at'] != null ? DateTime.parse(json['sent_at'] as String) : null,
       receivedAt: json['received_at'] != null ? DateTime.parse(json['received_at'] as String) : null,
       note: json['note'] as String?,
-      items: (json['items'] as List<dynamic>?)
+      items:
+          (json['items'] as List<dynamic>?)
               ?.map((e) => StockTransferItem.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
@@ -51,9 +52,11 @@ class StockTransfer {
   }
 
   bool get isWithdrawal => fromBranchId == toBranchId;
+  bool get isCreated => status == 'CREATED';
   bool get isSent => status == 'SENT';
   bool get isReceived => status == 'RECEIVED';
   bool get isCancelled => status == 'CANCELLED';
+  bool get canReceive => isSent;
 }
 
 class StockTransferItem {
@@ -86,14 +89,12 @@ class StockTransferListResponse {
   final List<StockTransfer> transfers;
   final int total;
 
-  const StockTransferListResponse({
-    required this.transfers,
-    required this.total,
-  });
+  const StockTransferListResponse({required this.transfers, required this.total});
 
   factory StockTransferListResponse.fromJson(Map<String, dynamic> json) {
     return StockTransferListResponse(
-      transfers: (json['transfers'] as List<dynamic>?)
+      transfers:
+          (json['transfers'] as List<dynamic>?)
               ?.map((e) => StockTransfer.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
