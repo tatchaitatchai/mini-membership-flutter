@@ -48,23 +48,24 @@ final routerProvider = Provider<GoRouter>((ref) {
 
       if (isStoreLoggedIn &&
           hasBranch &&
-          !isShiftOpen &&
-          !isOpenShiftRoute &&
-          !isLoginRoute &&
-          !isRegisterRoute &&
-          !isSelectBranchRoute) {
-        return '/open-shift';
-      }
-
-      if (isStoreLoggedIn &&
-          hasBranch &&
-          isShiftOpen &&
           !isPinVerified &&
           !isPinRoute &&
           !isLoginRoute &&
           !isRegisterRoute &&
           !isSelectBranchRoute) {
         return '/pin';
+      }
+
+      if (isStoreLoggedIn &&
+          hasBranch &&
+          isPinVerified &&
+          !isShiftOpen &&
+          !isOpenShiftRoute &&
+          !isLoginRoute &&
+          !isRegisterRoute &&
+          !isSelectBranchRoute &&
+          !isPinRoute) {
+        return '/open-shift';
       }
 
       return null;

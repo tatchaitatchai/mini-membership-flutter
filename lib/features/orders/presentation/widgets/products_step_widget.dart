@@ -6,6 +6,8 @@ import '../../../../common/utils/formatters.dart';
 import '../../../customers/domain/customer.dart';
 import '../../../products/domain/product.dart';
 import '../../../products/data/product_repository.dart';
+import '../../../promotions/domain/promotion.dart';
+import '../../../promotions/data/promotion_repository.dart';
 
 class ProductsStepWidget extends ConsumerStatefulWidget {
   final Customer? selectedCustomer;
@@ -16,6 +18,7 @@ class ProductsStepWidget extends ConsumerStatefulWidget {
   final VoidCallback onBack;
   final VoidCallback onNext;
   final Function(String productId, int quantity) onCartChanged;
+  final Function(Promotion?)? onPromotionDetected;
 
   const ProductsStepWidget({
     super.key,
@@ -27,6 +30,7 @@ class ProductsStepWidget extends ConsumerStatefulWidget {
     required this.onBack,
     required this.onNext,
     required this.onCartChanged,
+    this.onPromotionDetected,
   });
 
   @override
@@ -34,6 +38,91 @@ class ProductsStepWidget extends ConsumerStatefulWidget {
 }
 
 class _ProductsStepWidgetState extends ConsumerState<ProductsStepWidget> {
+  List<DetectedPromotion> _detectedPromotions = [];
+  bool _isDetecting = false;
+  String _lastCartHash = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _scheduleDetection();
+  }
+
+  @override
+  void didUpdateWidget(ProductsStepWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _scheduleDetection();
+  }
+
+  void _scheduleDetection() {
+    final newHash = _cartToHash(widget.cart);
+    // ignore: avoid_print
+    print('[PROMO] _scheduleDetection: newHash=$newHash, lastHash=$_lastCartHash, cartSize=${widget.cart.length}');
+    if (newHash != _lastCartHash) {
+      _lastCartHash = newHash;
+      if (widget.cart.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _detectPromotions());
+      } else {
+        setState(() => _detectedPromotions = []);
+      }
+    }
+  }
+
+  String _cartToHash(Map<String, int> cart) {
+    final sorted = cart.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
+    return sorted.map((e) => '${e.key}:${e.value}').join(',');
+  }
+
+  Future<void> _detectPromotions() async {
+    if (_isDetecting || !mounted) return;
+
+    setState(() => _isDetecting = true);
+
+    try {
+      // Build items for API
+      final items = <Map<String, dynamic>>[];
+      for (var entry in widget.cart.entries) {
+        final product = ref.read(productRepositoryProvider).getProductById(entry.key);
+        if (product != null) {
+          items.add({
+            'product_id': int.tryParse(product.id) ?? 0,
+            'quantity': entry.value,
+            'unit_price': product.price,
+          });
+        }
+      }
+
+      if (items.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _detectedPromotions = [];
+            _isDetecting = false;
+          });
+        }
+        return;
+      }
+
+      // ignore: avoid_print
+      print('[PROMO] Detecting promotions for ${items.length} items: $items');
+      final detected = await ref.read(promotionRepositoryProvider).detectPromotions(items: items);
+      // ignore: avoid_print
+      print('[PROMO] Detected ${detected.length} promotions');
+
+      if (mounted) {
+        setState(() {
+          _detectedPromotions = detected;
+          _isDetecting = false;
+        });
+      }
+    } catch (e) {
+      // ignore: avoid_print
+      print('[PROMO] Error detecting promotions: $e');
+      if (mounted) {
+        setState(() => _isDetecting = false);
+      }
+    }
+  }
+
   Widget _buildPlaceholderImage({double size = 56}) {
     return Container(
       width: size,
@@ -198,9 +287,70 @@ class _ProductsStepWidgetState extends ConsumerState<ProductsStepWidget> {
                   ),
           ),
           const Divider(),
+          // Show detected promotions banner
+          if (_detectedPromotions.isNotEmpty) _buildDetectedPromotionsBanner(),
           _buildSummaryRow('ยอดรวมย่อย', Formatters.formatMoney(widget.subtotal)),
           if (widget.discount > 0) _buildSummaryRow('ส่วนลด', '-${Formatters.formatMoney(widget.discount)}'),
           _buildSummaryRow('ยอดรวม', Formatters.formatMoney(widget.total), isTotal: true),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetectedPromotionsBanner() {
+    // Sort by discount amount (highest first)
+    final sortedPromos = List<DetectedPromotion>.from(_detectedPromotions)
+      ..sort((a, b) => b.discountAmount.compareTo(a.discountAmount));
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: [Colors.green.shade400, Colors.green.shade600]),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.local_offer, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'โปรโมชั่นที่ใช้ได้ (${sortedPromos.length})',
+                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+              ),
+              if (_isDetecting)
+                const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          // Show all promotions
+          ...sortedPromos.map(
+            (promo) => Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(promo.promotionName, style: const TextStyle(color: Colors.white, fontSize: 13)),
+                  ),
+                  Text(
+                    'ลด ${Formatters.formatMoney(promo.discountAmount)}',
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );

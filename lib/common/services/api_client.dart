@@ -1,17 +1,20 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+final apiClientProvider = Provider<ApiClient>((ref) {
+  const baseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:8085');
+  return ApiClient(baseUrl: baseUrl, secureStorage: const FlutterSecureStorage());
+});
 
 class ApiClient {
   final String baseUrl;
   final FlutterSecureStorage _secureStorage;
-  
+
   static const _sessionTokenKey = 'session_token';
 
-  ApiClient({
-    required this.baseUrl,
-    required FlutterSecureStorage secureStorage,
-  }) : _secureStorage = secureStorage;
+  ApiClient({required this.baseUrl, required FlutterSecureStorage secureStorage}) : _secureStorage = secureStorage;
 
   Future<String?> getSessionToken() async {
     return await _secureStorage.read(key: _sessionTokenKey);
@@ -26,10 +29,7 @@ class ApiClient {
   }
 
   Future<Map<String, String>> _getHeaders({bool requireAuth = false}) async {
-    final headers = <String, String>{
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
+    final headers = <String, String>{'Content-Type': 'application/json', 'Accept': 'application/json'};
 
     if (requireAuth) {
       final token = await getSessionToken();
@@ -48,10 +48,7 @@ class ApiClient {
   }) async {
     try {
       final headers = await _getHeaders(requireAuth: requireAuth);
-      final response = await http.get(
-        Uri.parse('$baseUrl$path'),
-        headers: headers,
-      );
+      final response = await http.get(Uri.parse('$baseUrl$path'), headers: headers);
       return _handleResponse(response, fromJson);
     } catch (e) {
       return ApiResponse.error(e.toString());
@@ -77,10 +74,40 @@ class ApiClient {
     }
   }
 
-  ApiResponse<T> _handleResponse<T>(
-    http.Response response,
-    T Function(Map<String, dynamic>)? fromJson,
-  ) {
+  Future<ApiResponse<List<T>>> getList<T>(
+    String path, {
+    bool requireAuth = false,
+    required T Function(Map<String, dynamic>) fromJson,
+  }) async {
+    try {
+      final headers = await _getHeaders(requireAuth: requireAuth);
+      final response = await http.get(Uri.parse('$baseUrl$path'), headers: headers);
+      return _handleListResponse(response, fromJson);
+    } catch (e) {
+      return ApiResponse.error(e.toString());
+    }
+  }
+
+  Future<ApiResponse<List<T>>> postList<T>(
+    String path, {
+    Map<String, dynamic>? body,
+    bool requireAuth = false,
+    required T Function(Map<String, dynamic>) fromJson,
+  }) async {
+    try {
+      final headers = await _getHeaders(requireAuth: requireAuth);
+      final response = await http.post(
+        Uri.parse('$baseUrl$path'),
+        headers: headers,
+        body: body != null ? jsonEncode(body) : null,
+      );
+      return _handleListResponse(response, fromJson);
+    } catch (e) {
+      return ApiResponse.error(e.toString());
+    }
+  }
+
+  ApiResponse<T> _handleResponse<T>(http.Response response, T Function(Map<String, dynamic>)? fromJson) {
     final body = response.body.isNotEmpty ? jsonDecode(response.body) as Map<String, dynamic> : <String, dynamic>{};
 
     if (response.statusCode >= 200 && response.statusCode < 300) {
@@ -93,6 +120,21 @@ class ApiClient {
       return ApiResponse.error(error, statusCode: response.statusCode);
     }
   }
+
+  ApiResponse<List<T>> _handleListResponse<T>(http.Response response, T Function(Map<String, dynamic>) fromJson) {
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final body = response.body.isNotEmpty ? jsonDecode(response.body) : [];
+      if (body is List) {
+        final items = body.map((e) => fromJson(e as Map<String, dynamic>)).toList();
+        return ApiResponse.success(items);
+      }
+      return ApiResponse.success([]);
+    } else {
+      final body = response.body.isNotEmpty ? jsonDecode(response.body) as Map<String, dynamic> : <String, dynamic>{};
+      final error = body['error'] as String? ?? 'Unknown error';
+      return ApiResponse.error(error, statusCode: response.statusCode);
+    }
+  }
 }
 
 class ApiResponse<T> {
@@ -101,12 +143,7 @@ class ApiResponse<T> {
   final int? statusCode;
   final bool isSuccess;
 
-  ApiResponse._({
-    this.data,
-    this.error,
-    this.statusCode,
-    required this.isSuccess,
-  });
+  ApiResponse._({this.data, this.error, this.statusCode, required this.isSuccess});
 
   factory ApiResponse.success(T data) {
     return ApiResponse._(data: data, isSuccess: true);

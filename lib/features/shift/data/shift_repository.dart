@@ -45,6 +45,7 @@ class ShiftRepository {
     if (response.isSuccess && response.data != null) {
       await _prefs.setInt(_branchIdKey, response.data!.branchId);
       await _prefs.setString(_branchNameKey, response.data!.branchName);
+      await _prefs.setBool(_shiftOpenKey, response.data!.isShiftOpened);
       return response.data;
     }
     return null;
@@ -75,6 +76,41 @@ class ShiftRepository {
       fromJson: CurrentShiftResponse.fromJson,
     );
     if (response.isSuccess && response.data != null) {
+      return response.data;
+    }
+    return null;
+  }
+
+  Future<ShiftSummaryResponse?> getShiftSummaryApi() async {
+    final response = await _apiClient.get<ShiftSummaryResponse>(
+      '/api/v2/shifts/summary',
+      requireAuth: true,
+      fromJson: ShiftSummaryResponse.fromJson,
+    );
+    if (response.isSuccess && response.data != null) {
+      return response.data;
+    }
+    return null;
+  }
+
+  Future<CloseShiftResponse?> closeShiftApi(
+    double actualCash, {
+    String? note,
+    List<StockCountInput>? stockCounts,
+  }) async {
+    final request = CloseShiftRequest(actualCash: actualCash, note: note, stockCounts: stockCounts);
+    final response = await _apiClient.post<CloseShiftResponse>(
+      '/api/v2/shifts/close',
+      body: request.toJson(),
+      requireAuth: true,
+      fromJson: CloseShiftResponse.fromJson,
+    );
+    if (response.isSuccess && response.data != null) {
+      await _prefs.setBool(_shiftOpenKey, false);
+      await _prefs.remove(_shiftIdKey);
+      await _prefs.remove(_shiftStartingCashKey);
+      await _prefs.remove(_shiftStartTimeKey);
+      _currentShift = null;
       return response.data;
     }
     return null;

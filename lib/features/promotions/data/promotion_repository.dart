@@ -1,46 +1,69 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../common/services/api_client.dart';
 import '../domain/promotion.dart';
 
 class PromotionRepository {
-  final List<Promotion> _promotions = const [
-    Promotion(
-      id: 'PROMO001',
-      name: '10% Off',
-      description: 'Get 10% off your entire order',
-      type: PromotionType.percentage,
-      value: 10,
-    ),
-    Promotion(
-      id: 'PROMO002',
-      name: '20% Off',
-      description: 'Get 20% off your entire order',
-      type: PromotionType.percentage,
-      value: 20,
-    ),
-    Promotion(
-      id: 'PROMO003',
-      name: '\$5 Off',
-      description: 'Get \$5 off your order',
-      type: PromotionType.fixedAmount,
-      value: 5,
-    ),
-    Promotion(
-      id: 'PROMO004',
-      name: 'Buy 2 Get 1',
-      description: 'Buy 2 items, get 1 free',
-      type: PromotionType.buyXGetY,
-      value: 2,
-    ),
-  ];
+  final ApiClient _apiClient;
+
+  PromotionRepository(this._apiClient);
 
   Future<List<Promotion>> getActivePromotions() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    return _promotions.where((p) => p.isActive).toList();
+    final response = await _apiClient.getList<Promotion>(
+      '/api/v2/promotions',
+      requireAuth: true,
+      fromJson: Promotion.fromJson,
+    );
+    if (response.isSuccess && response.data != null) {
+      return response.data!;
+    }
+    debugPrint('getActivePromotions error: ${response.error}');
+    return [];
   }
 
-  Promotion? getById(String id) {
+  Future<CalculateDiscountResponse?> calculateDiscount({
+    required int promotionId,
+    required List<Map<String, dynamic>> items,
+    required double subtotal,
+  }) async {
+    final response = await _apiClient.post<CalculateDiscountResponse>(
+      '/api/v2/promotions/calculate',
+      body: {'promotion_id': promotionId, 'items': items, 'subtotal': subtotal},
+      requireAuth: true,
+      fromJson: CalculateDiscountResponse.fromJson,
+    );
+    if (response.isSuccess && response.data != null) {
+      return response.data!;
+    }
+    debugPrint('calculateDiscount error: ${response.error}');
+    return null;
+  }
+
+  Future<List<DetectedPromotion>> detectPromotions({required List<Map<String, dynamic>> items}) async {
+    debugPrint('detectPromotions called with ${items.length} items');
     try {
-      return _promotions.firstWhere((p) => p.id == id);
+      final response = await _apiClient.postList<DetectedPromotion>(
+        '/api/v2/promotions/detect',
+        body: {'items': items},
+        requireAuth: true,
+        fromJson: DetectedPromotion.fromJson,
+      );
+      debugPrint(
+        'detectPromotions response: success=${response.isSuccess}, error=${response.error}, count=${response.data?.length}',
+      );
+      if (response.isSuccess && response.data != null) {
+        return response.data!;
+      }
+      return [];
+    } catch (e) {
+      debugPrint('detectPromotions exception: $e');
+      return [];
+    }
+  }
+
+  Promotion? getById(int id, List<Promotion> promotions) {
+    try {
+      return promotions.firstWhere((p) => p.id == id);
     } catch (_) {
       return null;
     }
@@ -48,5 +71,6 @@ class PromotionRepository {
 }
 
 final promotionRepositoryProvider = Provider<PromotionRepository>((ref) {
-  return PromotionRepository();
+  final apiClient = ref.watch(apiClientProvider);
+  return PromotionRepository(apiClient);
 });

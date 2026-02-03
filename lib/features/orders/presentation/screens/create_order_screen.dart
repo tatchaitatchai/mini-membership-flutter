@@ -26,7 +26,7 @@ class CreateOrderScreen extends ConsumerStatefulWidget {
 class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   int _step = 0;
   Customer? _selectedCustomer;
-  final Map<String, int> _cart = {};
+  Map<String, int> _cart = {};
   Promotion? _selectedPromotion;
   bool _isLoading = false;
 
@@ -43,7 +43,69 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
 
   double get _discount {
     if (_selectedPromotion == null) return 0;
-    return _selectedPromotion!.calculateDiscount(_subtotal);
+    return _calculatePromotionDiscount(_selectedPromotion!, _subtotal);
+  }
+
+  double _calculatePromotionDiscount(Promotion promo, double subtotal) {
+    final config = promo.config;
+    if (promo.isBillLevel) {
+      if (config.percentDiscount != null) {
+        return subtotal * (config.percentDiscount! / 100);
+      }
+      if (config.bahtDiscount != null) {
+        return config.bahtDiscount!;
+      }
+    }
+    // For product-level promotions, calculate based on matching products
+    if (config.percentDiscount != null) {
+      final matchingTotal = _getMatchingProductsTotal(promo);
+      return matchingTotal * (config.percentDiscount! / 100);
+    }
+    if (config.bahtDiscount != null) {
+      final matchingQty = _getMatchingProductsQty(promo);
+      return config.bahtDiscount! * matchingQty;
+    }
+    if (config.totalPriceSetDiscount != null && config.oldPriceSet != null) {
+      if (_hasAllSetProducts(promo)) {
+        return config.oldPriceSet! - config.totalPriceSetDiscount!;
+      }
+    }
+    return 0;
+  }
+
+  double _getMatchingProductsTotal(Promotion promo) {
+    final productIds = promo.products.map((p) => p.productId).toSet();
+    double total = 0;
+    for (var entry in _cart.entries) {
+      final product = ref.read(productRepositoryProvider).getProductById(entry.key);
+      if (product != null && productIds.contains(int.tryParse(product.id))) {
+        total += product.price * entry.value;
+      }
+    }
+    return total;
+  }
+
+  int _getMatchingProductsQty(Promotion promo) {
+    final productIds = promo.products.map((p) => p.productId).toSet();
+    int qty = 0;
+    for (var entry in _cart.entries) {
+      final product = ref.read(productRepositoryProvider).getProductById(entry.key);
+      if (product != null && productIds.contains(int.tryParse(product.id))) {
+        qty += entry.value;
+      }
+    }
+    return qty;
+  }
+
+  bool _hasAllSetProducts(Promotion promo) {
+    final requiredIds = promo.products.map((p) => p.productId).toSet();
+    for (var entry in _cart.entries) {
+      final product = ref.read(productRepositoryProvider).getProductById(entry.key);
+      if (product != null && entry.value > 0) {
+        requiredIds.remove(int.tryParse(product.id));
+      }
+    }
+    return requiredIds.isEmpty;
   }
 
   double get _total => _subtotal - _discount;
@@ -89,7 +151,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       totalPrice: _total,
       payments: payments,
       changeAmount: change,
-      promotionId: _selectedPromotion != null ? int.tryParse(_selectedPromotion!.id) : null,
+      promotionId: _selectedPromotion?.id,
     );
 
     if (!mounted) return;
@@ -111,7 +173,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         cashReceived: cashAmount,
         transferAmount: transferAmount,
         change: change,
-        promotionId: _selectedPromotion?.id,
+        promotionId: _selectedPromotion?.id.toString(),
         attachedSlipUrl: slipImage?.path,
         status: OrderStatus.completed,
         createdAt: apiResponse.createdAt,
@@ -161,11 +223,14 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
 
   void _handleCartChanged(String productId, int quantity) {
     setState(() {
+      // Create new Map to trigger widget rebuild
+      final newCart = Map<String, int>.from(_cart);
       if (quantity <= 0) {
-        _cart.remove(productId);
+        newCart.remove(productId);
       } else {
-        _cart[productId] = quantity;
+        newCart[productId] = quantity;
       }
+      _cart = newCart;
     });
   }
 
@@ -205,6 +270,8 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       case 2:
         return PromotionStepWidget(
           selectedPromotion: _selectedPromotion,
+          subtotal: _subtotal,
+          cart: _cart,
           onBack: () => setState(() => _step = 1),
           onNext: () => setState(() => _step = 3),
           onPromotionSelected: (promotion) => setState(() => _selectedPromotion = promotion),

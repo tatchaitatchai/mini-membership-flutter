@@ -55,7 +55,8 @@ class _SelectBranchScreenState extends ConsumerState<SelectBranchScreen> {
 
     final shiftRepo = ref.read(shiftRepositoryProvider);
     final result = await shiftRepo.selectBranch(_selectedBranchId!);
-
+    print('Branch :: ${_selectedBranchId}');
+    print('Result :: ${result?.isShiftOpened}');
     if (!mounted) return;
 
     if (result != null) {
