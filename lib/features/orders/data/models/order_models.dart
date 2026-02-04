@@ -152,3 +152,89 @@ class CreateOrderResponse {
     );
   }
 }
+
+class OrderItemInfo {
+  final int productId;
+  final String productName;
+  final int quantity;
+  final double price;
+  final double total;
+
+  OrderItemInfo({
+    required this.productId,
+    required this.productName,
+    required this.quantity,
+    required this.price,
+    required this.total,
+  });
+
+  factory OrderItemInfo.fromJson(Map<String, dynamic> json) {
+    return OrderItemInfo(
+      productId: json['product_id'] as int,
+      productName: json['product_name'] as String,
+      quantity: json['quantity'] as int,
+      price: (json['price'] as num).toDouble(),
+      total: (json['total'] as num).toDouble(),
+    );
+  }
+}
+
+class OrderInfoResponse {
+  final int id;
+  final int? customerId;
+  final String? customerName;
+  final double subtotal;
+  final double discountTotal;
+  final double totalPrice;
+  final double changeAmount;
+  final String status;
+  final DateTime createdAt;
+  final String createdBy;
+  final List<OrderItemInfo> items;
+
+  OrderInfoResponse({
+    required this.id,
+    this.customerId,
+    this.customerName,
+    required this.subtotal,
+    required this.discountTotal,
+    required this.totalPrice,
+    required this.changeAmount,
+    required this.status,
+    required this.createdAt,
+    required this.createdBy,
+    required this.items,
+  });
+
+  factory OrderInfoResponse.fromJson(Map<String, dynamic> json) {
+    return OrderInfoResponse(
+      id: json['id'] as int,
+      customerId: json['customer_id'] as int?,
+      customerName: json['customer_name'] as String?,
+      subtotal: (json['subtotal'] as num).toDouble(),
+      discountTotal: (json['discount_total'] as num).toDouble(),
+      totalPrice: (json['total_price'] as num).toDouble(),
+      changeAmount: (json['change_amount'] as num).toDouble(),
+      status: json['status'] as String,
+      createdAt: DateTime.parse(json['created_at'] as String),
+      createdBy: json['created_by'] as String? ?? '',
+      items:
+          (json['items'] as List<dynamic>?)?.map((e) => OrderItemInfo.fromJson(e as Map<String, dynamic>)).toList() ??
+          [],
+    );
+  }
+}
+
+class ListOrdersResponse {
+  final List<OrderInfoResponse> orders;
+
+  ListOrdersResponse({required this.orders});
+
+  factory ListOrdersResponse.fromJson(Map<String, dynamic> json) {
+    return ListOrdersResponse(
+      orders: (json['orders'] as List<dynamic>)
+          .map((e) => OrderInfoResponse.fromJson(e as Map<String, dynamic>))
+          .toList(),
+    );
+  }
+}

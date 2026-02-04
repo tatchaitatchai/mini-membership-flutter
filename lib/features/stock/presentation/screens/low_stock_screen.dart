@@ -36,7 +36,7 @@ class _LowStockScreenState extends ConsumerState<LowStockScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('แจ้งเตือนสต็อกต่ำ'),
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.pop()),
+        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.go('/home')),
         actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: _refresh)],
       ),
       body: FutureBuilder<LowStockResponse?>(

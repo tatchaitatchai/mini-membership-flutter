@@ -180,7 +180,6 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         createdBy: ref.read(authRepositoryProvider).getCurrentStaffName() ?? 'Staff',
       );
 
-      await orderRepo.createOrder(order);
       _showOrderSuccessDialog(order);
     } else {
       setState(() => _isLoading = false);

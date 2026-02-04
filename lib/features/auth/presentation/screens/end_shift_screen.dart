@@ -45,6 +45,8 @@ class _EndShiftScreenState extends ConsumerState<EndShiftScreen> {
 
     if (!mounted) return;
 
+    print('Shift summary: cancelledCount=${summary?.cancelledCount}, cancelledTotal=${summary?.cancelledTotal}');
+
     setState(() {
       _summary = summary;
       _isLoadingSummary = false;
@@ -191,6 +193,7 @@ class _EndShiftScreenState extends ConsumerState<EndShiftScreen> {
                     _buildSummaryRow('ยอดขายรวม', Formatters.formatMoney(_summary!.totalSales)),
                     _buildSummaryRow('จำนวนออร์เดอร์', '${_summary!.orderCount}'),
                     _buildSummaryRow('เงินสดที่คาดไว้', Formatters.formatMoney(_summary!.expectedCash)),
+                    if (_summary!.cancelledCount > 0) ...[const Divider(height: 24), _buildCancelledSection()],
                   ],
                 ),
               ),
@@ -297,6 +300,54 @@ class _EndShiftScreenState extends ConsumerState<EndShiftScreen> {
         children: [
           Text(label, style: TextStyle(fontSize: 16, color: Colors.grey.shade700)),
           Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCancelledSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.red.shade50,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.red.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.cancel_outlined, color: Colors.red.shade700, size: 24),
+              const SizedBox(width: 12),
+              Text(
+                'ออร์เดอร์ที่ถูกยกเลิก',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.red.shade700),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('จำนวน', style: TextStyle(color: Colors.red.shade600)),
+              Text(
+                '${_summary!.cancelledCount} รายการ',
+                style: TextStyle(fontWeight: FontWeight.w600, color: Colors.red.shade700),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('มูลค่ารวม', style: TextStyle(color: Colors.red.shade600)),
+              Text(
+                Formatters.formatMoney(_summary!.cancelledTotal),
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: Colors.red.shade700),
+              ),
+            ],
+          ),
         ],
       ),
     );

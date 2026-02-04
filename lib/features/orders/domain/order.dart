@@ -98,4 +98,4 @@ class OrderItem {
   });
 }
 
-enum OrderStatus { completed, cancelled }
+enum OrderStatus { pending, completed, cancelled }

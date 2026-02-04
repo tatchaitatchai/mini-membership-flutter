@@ -33,13 +33,16 @@ class OrderDetailScreen extends ConsumerWidget {
 
     if (reason == null || reason.isEmpty) return;
 
-    await ref.read(orderRepositoryProvider).cancelOrder(orderId, staffName, reason);
+    final success = await ref.read(orderRepositoryProvider).cancelOrderApi(int.parse(orderId), reason, pinResult);
 
     if (!context.mounted) return;
 
-    ToastHelper.success(context, 'ยกเลิกออร์เดอร์สำเร็จ');
-
-    context.go('/orders');
+    if (success) {
+      ToastHelper.success(context, 'ยกเลิกออร์เดอร์สำเร็จ');
+      context.go('/orders');
+    } else {
+      ToastHelper.error(context, 'ไม่สามารถยกเลิกออร์เดอร์ได้');
+    }
   }
 
   @override

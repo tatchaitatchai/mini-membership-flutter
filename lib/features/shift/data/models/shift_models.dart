@@ -114,6 +114,8 @@ class ShiftSummaryResponse {
   final double totalSales;
   final int orderCount;
   final double expectedCash;
+  final double cancelledTotal;
+  final int cancelledCount;
 
   ShiftSummaryResponse({
     required this.shiftId,
@@ -121,6 +123,8 @@ class ShiftSummaryResponse {
     required this.totalSales,
     required this.orderCount,
     required this.expectedCash,
+    required this.cancelledTotal,
+    required this.cancelledCount,
   });
 
   factory ShiftSummaryResponse.fromJson(Map<String, dynamic> json) {
@@ -130,6 +134,8 @@ class ShiftSummaryResponse {
       totalSales: (json['total_sales'] as num).toDouble(),
       orderCount: json['order_count'] as int,
       expectedCash: (json['expected_cash'] as num).toDouble(),
+      cancelledTotal: (json['cancelled_total'] as num?)?.toDouble() ?? 0,
+      cancelledCount: json['cancelled_count'] as int? ?? 0,
     );
   }
 }

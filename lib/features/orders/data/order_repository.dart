@@ -5,7 +5,6 @@ import 'models/order_models.dart';
 
 class OrderRepository {
   final ApiClient _apiClient;
-  final List<Order> _orders = [];
 
   OrderRepository(this._apiClient);
 
@@ -43,40 +42,109 @@ class OrderRepository {
     return null;
   }
 
-  Future<void> createOrder(Order order) async {
-    _orders.add(order);
+  Future<List<Order>> getAllOrders() async {
+    final response = await _apiClient.get<ListOrdersResponse>(
+      '/api/v2/orders',
+      requireAuth: true,
+      fromJson: ListOrdersResponse.fromJson,
+    );
+    print(
+      'getAllOrders response: success=${response.isSuccess}, error=${response.error}, count=${response.data?.orders.length}',
+    );
+
+    if (response.isSuccess && response.data != null) {
+      return response.data!.orders
+          .map(
+            (o) => Order(
+              id: o.id.toString(),
+              customerId: o.customerId?.toString() ?? 'guest',
+              customerName: o.customerName ?? 'Guest',
+              items: o.items
+                  .map(
+                    (i) => OrderItem(
+                      productId: i.productId.toString(),
+                      productName: i.productName,
+                      price: i.price,
+                      quantity: i.quantity,
+                      total: i.total,
+                    ),
+                  )
+                  .toList(),
+              subtotal: o.subtotal,
+              discount: o.discountTotal,
+              total: o.totalPrice,
+              cashReceived: 0,
+              transferAmount: 0,
+              change: o.changeAmount,
+              status: _parseOrderStatus(o.status),
+              createdAt: o.createdAt,
+              createdBy: o.createdBy,
+            ),
+          )
+          .toList();
+    }
+    return [];
   }
 
-  Future<List<Order>> getAllOrders() async {
-    return List.from(_orders.reversed);
+  OrderStatus _parseOrderStatus(String status) {
+    switch (status) {
+      case 'PAID':
+        return OrderStatus.completed;
+      case 'CANCELLED':
+        return OrderStatus.cancelled;
+      case 'PENDING':
+        return OrderStatus.pending;
+      default:
+        return OrderStatus.completed;
+    }
   }
 
   Future<Order?> getOrderById(String id) async {
-    try {
-      return _orders.firstWhere((o) => o.id == id);
-    } catch (_) {
-      return null;
-    }
-  }
+    final response = await _apiClient.get<OrderInfoResponse>(
+      '/api/v2/orders/$id',
+      requireAuth: true,
+      fromJson: OrderInfoResponse.fromJson,
+    );
 
-  Future<void> cancelOrder(String orderId, String managerName, String reason) async {
-    final index = _orders.indexWhere((o) => o.id == orderId);
-    if (index != -1) {
-      _orders[index] = _orders[index].copyWith(
-        status: OrderStatus.cancelled,
-        cancelledBy: managerName,
-        cancelledAt: DateTime.now(),
-        cancellationReason: reason,
+    if (response.isSuccess && response.data != null) {
+      final o = response.data!;
+      return Order(
+        id: o.id.toString(),
+        customerId: o.customerId?.toString() ?? 'guest',
+        customerName: o.customerName ?? 'Guest',
+        items: o.items
+            .map(
+              (i) => OrderItem(
+                productId: i.productId.toString(),
+                productName: i.productName,
+                price: i.price,
+                quantity: i.quantity,
+                total: i.total,
+              ),
+            )
+            .toList(),
+        subtotal: o.subtotal,
+        discount: o.discountTotal,
+        total: o.totalPrice,
+        cashReceived: 0,
+        transferAmount: 0,
+        change: o.changeAmount,
+        status: _parseOrderStatus(o.status),
+        createdAt: o.createdAt,
+        createdBy: o.createdBy,
       );
     }
+    return null;
   }
 
-  List<Order> getCompletedOrders() {
-    return _orders.where((o) => o.status == OrderStatus.completed).toList();
-  }
-
-  double getTotalSalesAmount() {
-    return _orders.where((o) => o.status == OrderStatus.completed).fold(0.0, (sum, order) => sum + order.total);
+  Future<bool> cancelOrderApi(int orderId, String reason, String staffPin) async {
+    final response = await _apiClient.post<Map<String, dynamic>>(
+      '/api/v2/orders/$orderId/cancel',
+      body: {'reason': reason, 'staff_pin': staffPin},
+      requireAuth: true,
+      fromJson: (json) => json,
+    );
+    return response.isSuccess;
   }
 }
 

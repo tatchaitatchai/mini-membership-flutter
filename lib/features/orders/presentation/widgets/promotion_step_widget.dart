@@ -5,6 +5,7 @@ import '../../../../common/widgets/secondary_button.dart';
 import '../../../../common/utils/formatters.dart';
 import '../../../promotions/domain/promotion.dart';
 import '../../../promotions/data/promotion_repository.dart';
+import '../../../products/data/product_repository.dart';
 
 class PromotionStepWidget extends ConsumerStatefulWidget {
   final Promotion? selectedPromotion;
@@ -191,17 +192,43 @@ class _PromotionStepWidgetState extends ConsumerState<PromotionStepWidget> {
         return config.bahtDiscount!;
       }
     }
-    // For product-level, show potential discount
+    // For product-level, calculate based on matching products in cart
     if (config.percentDiscount != null) {
-      return widget.subtotal * (config.percentDiscount! / 100);
+      final matchingTotal = _getMatchingProductsTotal(promo);
+      return matchingTotal * (config.percentDiscount! / 100);
     }
     if (config.bahtDiscount != null) {
-      return config.bahtDiscount!;
+      final matchingQty = _getMatchingProductsQty(promo);
+      return config.bahtDiscount! * matchingQty;
     }
     if (config.totalPriceSetDiscount != null && config.oldPriceSet != null) {
       return config.oldPriceSet! - config.totalPriceSetDiscount!;
     }
     return 0;
+  }
+
+  double _getMatchingProductsTotal(Promotion promo) {
+    final productIds = promo.products.map((p) => p.productId).toSet();
+    double total = 0;
+    for (var entry in widget.cart.entries) {
+      final product = ref.read(productRepositoryProvider).getProductById(entry.key);
+      if (product != null && productIds.contains(int.tryParse(product.id))) {
+        total += product.price * entry.value;
+      }
+    }
+    return total;
+  }
+
+  int _getMatchingProductsQty(Promotion promo) {
+    final productIds = promo.products.map((p) => p.productId).toSet();
+    int qty = 0;
+    for (var entry in widget.cart.entries) {
+      final product = ref.read(productRepositoryProvider).getProductById(entry.key);
+      if (product != null && productIds.contains(int.tryParse(product.id))) {
+        qty += entry.value;
+      }
+    }
+    return qty;
   }
 
   Widget _buildPromotionCard({
