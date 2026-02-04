@@ -14,6 +14,7 @@ import '../features/stock/presentation/screens/receive_goods_screen.dart';
 import '../features/stock/presentation/screens/withdraw_goods_screen.dart';
 import '../features/stock/presentation/screens/adjust_stock_screen.dart';
 import '../features/stock/presentation/screens/low_stock_screen.dart';
+import '../features/points/presentation/screens/redeem_points_screen.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/shift/data/shift_repository.dart';
 
@@ -91,6 +92,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/adjust-stock', builder: (context, state) => const AdjustStockScreen()),
       GoRoute(path: '/low-stock', builder: (context, state) => const LowStockScreen()),
       GoRoute(path: '/end-shift', builder: (context, state) => const EndShiftScreen()),
+      GoRoute(path: '/redeem-points', builder: (context, state) => const RedeemPointsScreen()),
     ],
   );
 });

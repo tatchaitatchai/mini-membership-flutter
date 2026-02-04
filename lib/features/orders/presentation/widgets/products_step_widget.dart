@@ -8,6 +8,8 @@ import '../../../products/domain/product.dart';
 import '../../../products/data/product_repository.dart';
 import '../../../promotions/domain/promotion.dart';
 import '../../../promotions/data/promotion_repository.dart';
+import '../../../points/data/points_repository.dart';
+import '../../../points/domain/points.dart';
 
 class ProductsStepWidget extends ConsumerStatefulWidget {
   final Customer? selectedCustomer;
@@ -123,6 +125,22 @@ class _ProductsStepWidgetState extends ConsumerState<ProductsStepWidget> {
     }
   }
 
+  Future<void> _showCustomerPointsDialog() async {
+    if (widget.selectedCustomer == null || widget.selectedCustomer!.id == 'guest') return;
+
+    final customerId = int.tryParse(widget.selectedCustomer!.id);
+    if (customerId == null) return;
+
+    showDialog(
+      context: context,
+      builder: (context) => _CustomerPointsDialog(
+        customerId: customerId,
+        customerName: widget.selectedCustomer!.fullName,
+        customerCode: widget.selectedCustomer!.code,
+      ),
+    );
+  }
+
   Widget _buildPlaceholderImage({double size = 56}) {
     return Container(
       width: size,
@@ -168,7 +186,40 @@ class _ProductsStepWidgetState extends ConsumerState<ProductsStepWidget> {
                       style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
-                    Text('ลูกค้า: ${widget.selectedCustomer?.fullName}', style: TextStyle(color: Colors.grey.shade600)),
+                    Row(
+                      children: [
+                        Text(
+                          'ลูกค้า: ${widget.selectedCustomer?.fullName}',
+                          style: TextStyle(color: Colors.grey.shade600),
+                        ),
+                        if (widget.selectedCustomer != null && widget.selectedCustomer!.id != 'guest') ...[
+                          const SizedBox(width: 12),
+                          InkWell(
+                            onTap: _showCustomerPointsDialog,
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.shade100,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.amber.shade400),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.stars_rounded, size: 16, color: Colors.amber),
+                                  SizedBox(width: 4),
+                                  Text(
+                                    'เช็คแต้มสะสม',
+                                    style: TextStyle(fontSize: 12, color: Colors.amber, fontWeight: FontWeight.w600),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -353,6 +404,142 @@ class _ProductsStepWidgetState extends ConsumerState<ProductsStepWidget> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _CustomerPointsDialog extends ConsumerStatefulWidget {
+  final int customerId;
+  final String customerName;
+  final String customerCode;
+
+  const _CustomerPointsDialog({required this.customerId, required this.customerName, required this.customerCode});
+
+  @override
+  ConsumerState<_CustomerPointsDialog> createState() => _CustomerPointsDialogState();
+}
+
+class _CustomerPointsDialogState extends ConsumerState<_CustomerPointsDialog> {
+  CustomerPointsInfo? _pointsInfo;
+  bool _isLoading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPoints();
+  }
+
+  Future<void> _loadPoints() async {
+    try {
+      final pointsInfo = await ref
+          .read(pointsRepositoryProvider)
+          .getCustomerPoints(widget.customerId, widget.customerName, widget.customerCode);
+      if (mounted) {
+        setState(() {
+          _pointsInfo = pointsInfo;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.toString();
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Row(
+        children: [
+          const Icon(Icons.stars_rounded, color: Colors.amber),
+          const SizedBox(width: 8),
+          Expanded(child: Text('แต้มสะสม - ${widget.customerName}', style: const TextStyle(fontSize: 18))),
+        ],
+      ),
+      content: SizedBox(
+        width: 400,
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null
+            ? Center(child: Text('เกิดข้อผิดพลาด: $_error'))
+            : _pointsInfo == null || _pointsInfo!.products.isEmpty
+            ? const Center(
+                child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: Text('ยังไม่มีแต้มสะสม', style: TextStyle(color: Colors.grey)),
+                ),
+              )
+            : ListView.builder(
+                shrinkWrap: true,
+                itemCount: _pointsInfo!.products.length,
+                itemBuilder: (context, index) {
+                  final product = _pointsInfo!.products[index];
+                  final progress = product.pointsToRedeem > 0
+                      ? (product.points / product.pointsToRedeem).clamp(0.0, 1.0)
+                      : 0.0;
+                  final canRedeem = product.canRedeem;
+
+                  return Card(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(product.productName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: canRedeem ? Colors.green.shade100 : Colors.grey.shade200,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '${product.points} แต้ม',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: canRedeem ? Colors.green.shade700 : Colors.grey.shade600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: progress,
+                              backgroundColor: Colors.grey.shade300,
+                              valueColor: AlwaysStoppedAnimation(canRedeem ? Colors.green : Colors.amber),
+                              minHeight: 6,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            canRedeem
+                                ? 'แลกได้! (ใช้ ${product.pointsToRedeem} แต้ม)'
+                                : 'อีก ${product.pointsToRedeem - product.points} แต้มจะแลกได้',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: canRedeem ? Colors.green.shade700 : Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+      ),
+      actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('ปิด'))],
     );
   }
 }

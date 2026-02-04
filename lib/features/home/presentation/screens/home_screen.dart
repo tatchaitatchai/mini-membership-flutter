@@ -47,6 +47,14 @@ class HomeScreen extends ConsumerWidget {
                     color: POSTheme.primaryColor,
                     onTap: () => context.go('/create-order'),
                   ),
+
+                  _buildActionCard(
+                    context,
+                    icon: Icons.card_giftcard_rounded,
+                    title: 'แลกแต้มสะสม',
+                    color: Colors.amber,
+                    onTap: () => context.go('/redeem-points'),
+                  ),
                   _buildActionCard(
                     context,
                     icon: Icons.inventory_2_rounded,

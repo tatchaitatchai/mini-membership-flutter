@@ -31,6 +31,7 @@ import 'features/shift/data/shift_repository.dart';
 import 'features/products/data/product_repository.dart';
 import 'features/customers/data/customer_repository.dart';
 import 'features/orders/data/order_repository.dart';
+import 'features/points/data/points_repository.dart';
 
 const String apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: 'http://localhost:8085');
 
@@ -47,6 +48,7 @@ void main() async {
   final productRepository = ProductRepository(apiClient);
   final customerRepository = CustomerRepository(apiClient);
   final orderRepository = OrderRepository(apiClient);
+  final pointsRepository = PointsRepository(apiClient);
 
   runApp(
     ProviderScope(
@@ -56,6 +58,7 @@ void main() async {
         productRepositoryProvider.overrideWithValue(productRepository),
         customerRepositoryProvider.overrideWithValue(customerRepository),
         orderRepositoryProvider.overrideWithValue(orderRepository),
+        pointsRepositoryProvider.overrideWithValue(pointsRepository),
       ],
       child: const POSMeApp(),
     ),
