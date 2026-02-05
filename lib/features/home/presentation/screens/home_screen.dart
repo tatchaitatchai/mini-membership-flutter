@@ -23,6 +23,7 @@ class HomeScreen extends ConsumerWidget {
         staffName: staffName,
         shiftStatus: 'กะเปิดอยู่',
         onEndWork: () => context.go('/end-shift'),
+        onLogout: () => _showLogoutConfirmation(context, ref),
       ),
       body: Padding(
         padding: const EdgeInsets.all(24),
@@ -95,6 +96,33 @@ class HomeScreen extends ConsumerWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _showLogoutConfirmation(BuildContext context, WidgetRef ref) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('ออกจากระบบ'),
+        content: const Text('คุณต้องการออกจากระบบใช่หรือไม่?\n\nคุณจะต้องเข้าสู่ระบบด้วยอีเมลและรหัสผ่านใหม่'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text('ยกเลิก')),
+          ElevatedButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final authRepo = ref.read(authRepositoryProvider);
+              final shiftRepo = ref.read(shiftRepositoryProvider);
+              await authRepo.logout();
+              await shiftRepo.clearBranchSelection();
+              if (context.mounted) {
+                context.go('/login');
+              }
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red, foregroundColor: Colors.white),
+            child: const Text('ออกจากระบบ'),
+          ),
+        ],
       ),
     );
   }

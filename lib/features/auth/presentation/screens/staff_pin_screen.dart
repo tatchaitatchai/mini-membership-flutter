@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../common/widgets/pos_number_pad.dart';
 import '../../data/auth_repository.dart';
+import '../../../shift/data/shift_repository.dart';
 
 class StaffPinScreen extends ConsumerStatefulWidget {
   const StaffPinScreen({super.key});
@@ -42,12 +43,24 @@ class _StaffPinScreenState extends ConsumerState<StaffPinScreen> {
     setState(() => _isLoading = true);
 
     final authRepo = ref.read(authRepositoryProvider);
+    final shiftRepo = ref.read(shiftRepositoryProvider);
     final staffName = await authRepo.verifyStaffPin(_pin);
 
     if (!mounted) return;
 
     if (staffName != null) {
-      context.go('/home');
+      // Check shift status from server
+      final currentShift = await shiftRepo.getCurrentShiftApi();
+      if (!mounted) return;
+
+      if (currentShift != null && currentShift.hasActiveShift && currentShift.shift != null) {
+        // Shift is open - sync to local and go to home
+        await shiftRepo.syncShiftToLocal(currentShift.shift!);
+        context.go('/home');
+      } else {
+        // No open shift - go to open shift screen
+        context.go('/open-shift');
+      }
     } else {
       setState(() {
         _isLoading = false;
@@ -107,7 +120,6 @@ class _StaffPinScreenState extends ConsumerState<StaffPinScreen> {
               else
                 POSNumberPad(onNumberPressed: _onNumberPressed, onBackspace: _onBackspace, currentValue: _pin),
               const SizedBox(height: 32),
-              Text('รหัส PIN ทดสอบ: 1234, 5678', style: TextStyle(fontSize: 12, color: Colors.grey.shade500)),
             ],
           ),
         ),

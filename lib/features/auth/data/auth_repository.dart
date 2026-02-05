@@ -100,11 +100,12 @@ class AuthRepository {
   }
 
   Future<void> logout() async {
-    await _apiClient.post('/api/mobile/v1/auth/logout', requireAuth: true);
+    await _apiClient.post('/api/v2/auth/logout', requireAuth: true);
     await _apiClient.clearSessionToken();
     await _prefs.remove(_storeEmailKey);
     await _prefs.remove(_storeNameKey);
     await _prefs.remove(_storeIdKey);
+    await _prefs.remove(_branchIdKey);
     await _prefs.remove(_staffNameKey);
     await _prefs.remove(_staffIdKey);
     await _prefs.remove(_isManagerKey);

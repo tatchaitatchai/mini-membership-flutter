@@ -45,8 +45,6 @@ class _EndShiftScreenState extends ConsumerState<EndShiftScreen> {
 
     if (!mounted) return;
 
-    print('Shift summary: cancelledCount=${summary?.cancelledCount}, cancelledTotal=${summary?.cancelledTotal}');
-
     setState(() {
       _summary = summary;
       _isLoadingSummary = false;

@@ -81,6 +81,13 @@ class ShiftRepository {
     return null;
   }
 
+  Future<void> syncShiftToLocal(ShiftInfo shift) async {
+    await _prefs.setBool(_shiftOpenKey, true);
+    await _prefs.setInt(_shiftIdKey, shift.id);
+    await _prefs.setDouble(_shiftStartingCashKey, shift.startingCash);
+    await _prefs.setString(_shiftStartTimeKey, shift.startedAt.toIso8601String());
+  }
+
   Future<ShiftSummaryResponse?> getShiftSummaryApi() async {
     final response = await _apiClient.get<ShiftSummaryResponse>(
       '/api/v2/shifts/summary',
@@ -127,6 +134,11 @@ class ShiftRepository {
   Future<void> clearBranchSelection() async {
     await _prefs.remove(_branchIdKey);
     await _prefs.remove(_branchNameKey);
+    await _prefs.remove(_shiftOpenKey);
+    await _prefs.remove(_shiftIdKey);
+    await _prefs.remove(_shiftStartingCashKey);
+    await _prefs.remove(_shiftStartTimeKey);
+    _currentShift = null;
   }
 
   // Legacy local methods (kept for backward compatibility)

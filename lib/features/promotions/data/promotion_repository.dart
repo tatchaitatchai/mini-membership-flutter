@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../common/services/api_client.dart';
 import '../domain/promotion.dart';
@@ -17,7 +16,6 @@ class PromotionRepository {
     if (response.isSuccess && response.data != null) {
       return response.data!;
     }
-    debugPrint('getActivePromotions error: ${response.error}');
     return [];
   }
 
@@ -35,12 +33,10 @@ class PromotionRepository {
     if (response.isSuccess && response.data != null) {
       return response.data!;
     }
-    debugPrint('calculateDiscount error: ${response.error}');
     return null;
   }
 
   Future<List<DetectedPromotion>> detectPromotions({required List<Map<String, dynamic>> items}) async {
-    debugPrint('detectPromotions called with ${items.length} items');
     try {
       final response = await _apiClient.postList<DetectedPromotion>(
         '/api/v2/promotions/detect',
@@ -48,15 +44,11 @@ class PromotionRepository {
         requireAuth: true,
         fromJson: DetectedPromotion.fromJson,
       );
-      debugPrint(
-        'detectPromotions response: success=${response.isSuccess}, error=${response.error}, count=${response.data?.length}',
-      );
       if (response.isSuccess && response.data != null) {
         return response.data!;
       }
       return [];
     } catch (e) {
-      debugPrint('detectPromotions exception: $e');
       return [];
     }
   }

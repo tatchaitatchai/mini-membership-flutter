@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../common/widgets/primary_button.dart';
 import '../../../../common/widgets/secondary_button.dart';
+import '../../../../common/widgets/terms_and_privacy_dialog.dart';
 import '../../../../common/utils/validators.dart';
 import '../../../../common/utils/toast_helper.dart';
 import '../../data/auth_repository.dart';
@@ -73,26 +74,7 @@ class _RegisterBusinessScreenState extends ConsumerState<RegisterBusinessScreen>
   }
 
   void _showPolicy() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('ข้อกำหนดและนโยบาย'),
-        content: const SingleChildScrollView(
-          child: Text(
-            'นี่คือแอปพลิเคชันสาธิต\n\n'
-            'ข้อกำหนดการใช้บริการ:\n'
-            '1. ใช้เพื่อการสาธิตเท่านั้น\n'
-            '2. ไม่มีการเก็บหรือส่งข้อมูลจริง\n'
-            '3. ข้อมูลทั้งหมดเก็บไว้ในเครื่องของคุณ\n\n'
-            'นโยบายความเป็นส่วนตัว:\n'
-            '1. ไม่มีการเก็บข้อมูลส่วนบุคคล\n'
-            '2. ไม่มีการวิเคราะห์หรือติดตาม\n'
-            '3. ข้อมูลทั้งหมดอยู่ในเครื่องของคุณ',
-          ),
-        ),
-        actions: [TextButton(onPressed: () => Navigator.of(context).pop(), child: const Text('ปิด'))],
-      ),
-    );
+    TermsAndPrivacyDialog.show(context);
   }
 
   @override

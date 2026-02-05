@@ -1,23 +1,5 @@
-/// POS ME - Modern Tablet POS System
-///
-/// DEMO APP - UI ONLY (No backend, no real API)
-///
-/// HOW TO RUN:
-/// 1. Add dependencies to pubspec.yaml:
-///    - flutter_riverpod: ^2.4.0
-///    - go_router: ^12.0.0
-///    - flutter_secure_storage: ^9.0.0
-///    - shared_preferences: ^2.2.2
-/// 2. Run: flutter pub get
-/// 3. Run: flutter run
-///
-/// DEMO DATA:
-/// - Store Email: demo@store.com
-/// - Staff PIN: 1234 or 5678
-/// - Manager PIN: 9999
-/// - Products: 10 items with stock
-/// - Customers: Sample customers with last4 codes
-/// - Promotions: 10% off, Buy 2 Get 1, etc.
+/// POS ME - Point of Sale and Membership Management System
+/// Copyright (c) 2026 POS ME Team. All rights reserved.
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

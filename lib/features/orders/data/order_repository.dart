@@ -48,9 +48,6 @@ class OrderRepository {
       requireAuth: true,
       fromJson: ListOrdersResponse.fromJson,
     );
-    print(
-      'getAllOrders response: success=${response.isSuccess}, error=${response.error}, count=${response.data?.orders.length}',
-    );
 
     if (response.isSuccess && response.data != null) {
       return response.data!.orders

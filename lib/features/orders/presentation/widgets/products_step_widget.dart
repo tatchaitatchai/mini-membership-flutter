@@ -58,8 +58,6 @@ class _ProductsStepWidgetState extends ConsumerState<ProductsStepWidget> {
 
   void _scheduleDetection() {
     final newHash = _cartToHash(widget.cart);
-    // ignore: avoid_print
-    print('[PROMO] _scheduleDetection: newHash=$newHash, lastHash=$_lastCartHash, cartSize=${widget.cart.length}');
     if (newHash != _lastCartHash) {
       _lastCartHash = newHash;
       if (widget.cart.isNotEmpty) {
@@ -104,11 +102,7 @@ class _ProductsStepWidgetState extends ConsumerState<ProductsStepWidget> {
         return;
       }
 
-      // ignore: avoid_print
-      print('[PROMO] Detecting promotions for ${items.length} items: $items');
       final detected = await ref.read(promotionRepositoryProvider).detectPromotions(items: items);
-      // ignore: avoid_print
-      print('[PROMO] Detected ${detected.length} promotions');
 
       if (mounted) {
         setState(() {
@@ -117,8 +111,6 @@ class _ProductsStepWidgetState extends ConsumerState<ProductsStepWidget> {
         });
       }
     } catch (e) {
-      // ignore: avoid_print
-      print('[PROMO] Error detecting promotions: $e');
       if (mounted) {
         setState(() => _isDetecting = false);
       }

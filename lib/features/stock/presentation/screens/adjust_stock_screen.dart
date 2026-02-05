@@ -56,7 +56,6 @@ class _AdjustStockScreenState extends ConsumerState<AdjustStockScreen> with Sing
         requireAuth: true,
         fromJson: ListProductsResponse.fromJson,
       );
-      print('Load products response: success=${response.isSuccess}, error=${response.error}, data=${response.data}');
       if (mounted) {
         if (response.isSuccess && response.data != null) {
           setState(() => _products = response.data!.products);
@@ -66,10 +65,9 @@ class _AdjustStockScreenState extends ConsumerState<AdjustStockScreen> with Sing
         }
       }
     } catch (e) {
-      print('Load products error: $e');
       if (mounted) {
         setState(() => _products = []);
-        ToastHelper.error(context, 'ไม่สามารถโหลดรายการสินค้าได้: $e');
+        ToastHelper.error(context, 'ไม่สามารถโหลดรายการสินค้าได้');
       }
     }
   }

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../../common/widgets/pos_number_pad.dart';
 import '../../data/auth_repository.dart';
+import '../../../shift/data/shift_repository.dart';
 
 final lockScreenProvider = StateNotifierProvider<LockScreenNotifier, bool>((ref) {
   return LockScreenNotifier(ref);
@@ -95,12 +97,28 @@ class _LockScreenState extends ConsumerState<LockScreen> {
     setState(() => _isLoading = true);
 
     final authRepo = ref.read(authRepositoryProvider);
+    final shiftRepo = ref.read(shiftRepositoryProvider);
     final staffName = await authRepo.verifyStaffPin(_pin);
 
     if (!mounted) return;
 
     if (staffName != null) {
-      ref.read(lockScreenProvider.notifier).unlock();
+      // Check shift status from server after unlock
+      final currentShift = await shiftRepo.getCurrentShiftApi();
+      if (!mounted) return;
+
+      if (currentShift != null && currentShift.hasActiveShift && currentShift.shift != null) {
+        // Shift is still open - sync and unlock
+        await shiftRepo.syncShiftToLocal(currentShift.shift!);
+        ref.read(lockScreenProvider.notifier).unlock();
+      } else {
+        // Shift was closed - clear local data and redirect to open-shift
+        await shiftRepo.clearBranchSelection();
+        ref.read(lockScreenProvider.notifier).unlock();
+        if (mounted) {
+          context.go('/open-shift');
+        }
+      }
     } else {
       setState(() {
         _isLoading = false;

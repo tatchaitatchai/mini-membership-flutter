@@ -33,9 +33,6 @@ class InventoryRepository {
       requireAuth: true,
       fromJson: InventoryMovement.fromJson,
     );
-    print(
-      'getMovements response: success=${response.isSuccess}, error=${response.error}, count=${response.data?.length}',
-    );
     return response.data ?? [];
   }
 

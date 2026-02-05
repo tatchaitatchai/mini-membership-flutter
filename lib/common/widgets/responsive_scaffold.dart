@@ -28,8 +28,9 @@ class POSAppBar extends StatelessWidget {
   final String? staffName;
   final String? shiftStatus;
   final VoidCallback? onEndWork;
+  final VoidCallback? onLogout;
 
-  const POSAppBar({super.key, this.storeName, this.staffName, this.shiftStatus, this.onEndWork});
+  const POSAppBar({super.key, this.storeName, this.staffName, this.shiftStatus, this.onEndWork, this.onLogout});
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +51,18 @@ class POSAppBar extends StatelessWidget {
           if (staffName != null) ...[_buildInfo(Icons.person, staffName!), const SizedBox(width: 24)],
           if (shiftStatus != null) ...[_buildInfo(Icons.schedule, shiftStatus!)],
           const Spacer(),
+          if (onLogout != null) ...[
+            OutlinedButton.icon(
+              onPressed: onLogout,
+              icon: const Icon(Icons.logout),
+              label: const Text('ออกจากระบบ'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.grey.shade700,
+                side: BorderSide(color: Colors.grey.shade300),
+              ),
+            ),
+            const SizedBox(width: 12),
+          ],
           if (onEndWork != null)
             ElevatedButton.icon(
               onPressed: onEndWork,
