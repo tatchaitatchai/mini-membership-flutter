@@ -44,4 +44,11 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
+# Signing
+/android/key.properties
+*.jks
+*.keystore
+
 .env
+.env.flutter
+.env.flutter.production
