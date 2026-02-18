@@ -240,7 +240,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         title: const Text('สร้างออร์เดอร์'),
         leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.go('/home')),
       ),
-      body: _buildStepContent(),
+      body: SafeArea(child: _buildStepContent()),
     );
   }
 

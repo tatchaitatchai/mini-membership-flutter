@@ -180,7 +180,12 @@ class _EndShiftScreenState extends ConsumerState<EndShiftScreen> {
         leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.go('/home')),
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(padding),
+        padding: EdgeInsets.only(
+          left: padding,
+          right: padding,
+          top: padding,
+          bottom: padding + MediaQuery.of(context).viewPadding.bottom,
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

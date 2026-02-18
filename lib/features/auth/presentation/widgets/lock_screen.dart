@@ -11,9 +11,24 @@ final lockScreenProvider = StateNotifierProvider<LockScreenNotifier, bool>((ref)
 
 class LockScreenNotifier extends StateNotifier<bool> {
   final Ref ref;
+  bool _skipNextLock = false;
 
   LockScreenNotifier(this.ref) : super(false) {
     WidgetsBinding.instance.addObserver(_AppLifecycleObserver(this));
+  }
+
+  /// Call this before opening camera/gallery to skip locking on next pause
+  void setSkipNextLock() {
+    _skipNextLock = true;
+  }
+
+  void onPaused() {
+    if (_skipNextLock) return;
+    lock();
+  }
+
+  void onResumed() {
+    _skipNextLock = false;
   }
 
   void lock() {
@@ -36,8 +51,10 @@ class _AppLifecycleObserver extends WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
-      notifier.lock();
+    if (state == AppLifecycleState.paused) {
+      notifier.onPaused();
+    } else if (state == AppLifecycleState.resumed) {
+      notifier.onResumed();
     }
   }
 }
@@ -51,11 +68,13 @@ class LockScreenWrapper extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isLocked = ref.watch(lockScreenProvider);
 
-    if (isLocked) {
-      return const LockScreen();
-    }
-
-    return child;
+    return Stack(
+      children: [
+        // Keep child alive so state is preserved
+        child,
+        if (isLocked) const LockScreen(),
+      ],
+    );
   }
 }
 
@@ -139,7 +158,12 @@ class _LockScreenState extends ConsumerState<LockScreen> {
       backgroundColor: Colors.black87,
       body: Center(
         child: Container(
-          padding: EdgeInsets.all(isSmall ? 20 : 32),
+          padding: EdgeInsets.only(
+            left: isSmall ? 20 : 32,
+            right: isSmall ? 20 : 32,
+            top: isSmall ? 20 : 32,
+            bottom: (isSmall ? 20 : 32) + MediaQuery.of(context).viewPadding.bottom,
+          ),
           constraints: const BoxConstraints(maxWidth: 400),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,

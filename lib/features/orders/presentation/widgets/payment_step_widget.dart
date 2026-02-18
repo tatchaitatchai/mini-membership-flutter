@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../app/theme.dart';
 import '../../../../common/widgets/primary_button.dart';
@@ -7,6 +8,7 @@ import '../../../../common/widgets/secondary_button.dart';
 import '../../../../common/widgets/money_text_field.dart';
 import '../../../../common/utils/formatters.dart';
 import '../../../../common/utils/toast_helper.dart';
+import '../../../auth/presentation/widgets/lock_screen.dart';
 
 class PaymentStepWidget extends StatefulWidget {
   final double subtotal;
@@ -73,6 +75,8 @@ class _PaymentStepWidgetState extends State<PaymentStepWidget> {
     if (source == null) return;
 
     try {
+      // Skip lock screen when opening camera/gallery
+      ProviderScope.containerOf(context).read(lockScreenProvider.notifier).setSkipNextLock();
       final picker = ImagePicker();
       final pickedFile = await picker.pickImage(source: source);
       if (pickedFile != null) {
@@ -131,7 +135,12 @@ class _PaymentStepWidgetState extends State<PaymentStepWidget> {
     final padding = isSmall ? 12.0 : 24.0;
 
     return Padding(
-      padding: EdgeInsets.all(padding),
+      padding: EdgeInsets.only(
+        left: padding,
+        right: padding,
+        top: padding,
+        bottom: padding + MediaQuery.of(context).viewPadding.bottom,
+      ),
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

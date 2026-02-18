@@ -251,10 +251,11 @@ class _ProductsStepWidgetState extends ConsumerState<ProductsStepWidget> {
 
   Widget _buildMobileCartBar() {
     final itemCount = widget.cart.values.fold<int>(0, (sum, qty) => sum + qty);
+    final bottomPadding = MediaQuery.of(context).viewPadding.bottom;
     return GestureDetector(
       onTap: _showMobileCartSheet,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: EdgeInsets.only(left: 16, right: 16, top: 12, bottom: 12 + bottomPadding),
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, -2))],

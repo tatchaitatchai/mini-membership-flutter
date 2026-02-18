@@ -80,7 +80,12 @@ class _StaffPinScreenState extends ConsumerState<StaffPinScreen> {
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
-          padding: EdgeInsets.all(isSmall ? 20 : 32),
+          padding: EdgeInsets.only(
+            left: isSmall ? 20 : 32,
+            right: isSmall ? 20 : 32,
+            top: isSmall ? 20 : 32,
+            bottom: (isSmall ? 20 : 32) + MediaQuery.of(context).viewPadding.bottom,
+          ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
