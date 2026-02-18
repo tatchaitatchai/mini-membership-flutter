@@ -51,10 +51,13 @@ class _OpenShiftScreenState extends ConsumerState<OpenShiftScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmall = screenWidth < 600;
+
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(32),
+          padding: EdgeInsets.all(isSmall ? 20 : 32),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 500),
             child: Form(
@@ -63,20 +66,20 @@ class _OpenShiftScreenState extends ConsumerState<OpenShiftScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(Icons.schedule, size: 80, color: Color(0xFF6366F1)),
-                  const SizedBox(height: 24),
-                  const Text(
+                  Icon(Icons.schedule, size: isSmall ? 56 : 80, color: const Color(0xFF6366F1)),
+                  SizedBox(height: isSmall ? 16 : 24),
+                  Text(
                     'เปิดกะการทำงาน',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
+                    style: TextStyle(fontSize: isSmall ? 24 : 32, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'กรอกเงินทอนเริ่มต้นเพื่อเริ่มกะการทำงาน',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                    style: TextStyle(fontSize: isSmall ? 14 : 16, color: Colors.grey.shade600),
                   ),
-                  const SizedBox(height: 48),
+                  SizedBox(height: isSmall ? 32 : 48),
                   MoneyTextField(
                     controller: _startingCashController,
                     label: 'เงินทอนเริ่มต้นในลิ้นชัก',

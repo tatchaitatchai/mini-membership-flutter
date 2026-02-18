@@ -72,12 +72,18 @@ class _CustomerStepWidgetState extends ConsumerState<CustomerStepWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmall = screenWidth < 600;
+
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(isSmall ? 16 : 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('ขั้นตอนที่ 1: ระบุลูกค้า', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+          Text(
+            'ขั้นตอนที่ 1: ระบุลูกค้า',
+            style: TextStyle(fontSize: isSmall ? 18 : 24, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 24),
           TextField(
             controller: _last4Controller,

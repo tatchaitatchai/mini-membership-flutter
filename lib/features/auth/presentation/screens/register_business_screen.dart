@@ -79,13 +79,16 @@ class _RegisterBusinessScreenState extends ConsumerState<RegisterBusinessScreen>
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmall = screenWidth < 600;
+
     return Scaffold(
       appBar: AppBar(
         leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.go('/login')),
       ),
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(32),
+          padding: EdgeInsets.all(isSmall ? 20 : 32),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 500),
             child: Form(
@@ -93,10 +96,16 @@ class _RegisterBusinessScreenState extends ConsumerState<RegisterBusinessScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Text('ลงทะเบียนธุรกิจ', style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold)),
+                  Text(
+                    'ลงทะเบียนธุรกิจ',
+                    style: TextStyle(fontSize: isSmall ? 24 : 32, fontWeight: FontWeight.bold),
+                  ),
                   const SizedBox(height: 8),
-                  Text('สร้างบัญชี POS ของคุณ', style: TextStyle(fontSize: 16, color: Colors.grey.shade600)),
-                  const SizedBox(height: 32),
+                  Text(
+                    'สร้างบัญชี POS ของคุณ',
+                    style: TextStyle(fontSize: isSmall ? 14 : 16, color: Colors.grey.shade600),
+                  ),
+                  SizedBox(height: isSmall ? 20 : 32),
                   TextFormField(
                     controller: _businessNameController,
                     decoration: const InputDecoration(

@@ -27,6 +27,8 @@ class AuthRepository {
       fromJson: LoginResponse.fromJson,
     );
 
+    print('Login response: ${response.error}');
+
     if (response.isSuccess && response.data != null) {
       final data = response.data!;
       await _apiClient.setSessionToken(data.sessionToken);

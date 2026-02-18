@@ -64,8 +64,10 @@ class OrderDetailScreen extends ConsumerWidget {
           }
 
           final order = snapshot.data!;
+          final screenWidth = MediaQuery.of(context).size.width;
+          final isSmall = screenWidth < 600;
           return SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(isSmall ? 12 : 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -249,6 +251,10 @@ class _StaffPinDialogState extends State<_StaffPinDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmall = screenWidth < 600;
+    final dotSize = isSmall ? 36.0 : 50.0;
+
     return AlertDialog(
       title: const Text('ยืนยันตัวตน'),
       content: Column(
@@ -261,14 +267,18 @@ class _StaffPinDialogState extends State<_StaffPinDialog> {
             children: List.generate(4, (index) {
               final isFilled = index < _pin.length;
               return Container(
-                width: 50,
-                height: 50,
+                width: dotSize,
+                height: dotSize,
                 margin: const EdgeInsets.symmetric(horizontal: 4),
                 decoration: BoxDecoration(
                   color: isFilled ? const Color(0xFF6366F1) : Colors.grey.shade200,
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: isFilled ? const Center(child: Icon(Icons.circle, color: Colors.white, size: 12)) : null,
+                child: isFilled
+                    ? Center(
+                        child: Icon(Icons.circle, color: Colors.white, size: isSmall ? 10 : 12),
+                      )
+                    : null,
               );
             }),
           ),

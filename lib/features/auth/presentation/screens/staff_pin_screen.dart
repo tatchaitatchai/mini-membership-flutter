@@ -72,33 +72,48 @@ class _StaffPinScreenState extends ConsumerState<StaffPinScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmall = screenWidth < 600;
+    final dotSize = isSmall ? 44.0 : 60.0;
+    final dotMargin = isSmall ? 6.0 : 8.0;
+
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(32),
+          padding: EdgeInsets.all(isSmall ? 20 : 32),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.lock_person, size: 80, color: Color(0xFF6366F1)),
-              const SizedBox(height: 24),
-              const Text('กรอกรหัส PIN พนักงาน', style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
+              Icon(Icons.lock_person, size: isSmall ? 56 : 80, color: const Color(0xFF6366F1)),
+              SizedBox(height: isSmall ? 16 : 24),
+              Text(
+                'กรอกรหัส PIN พนักงาน',
+                style: TextStyle(fontSize: isSmall ? 22 : 28, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 8),
-              Text('กรอกรหัส PIN 4 หลักเพื่อดำเนินการต่อ', style: TextStyle(fontSize: 16, color: Colors.grey.shade600)),
-              const SizedBox(height: 48),
+              Text(
+                'กรอกรหัส PIN 4 หลักเพื่อดำเนินการต่อ',
+                style: TextStyle(fontSize: isSmall ? 14 : 16, color: Colors.grey.shade600),
+              ),
+              SizedBox(height: isSmall ? 32 : 48),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(4, (index) {
                   final isFilled = index < _pin.length;
                   return Container(
-                    width: 60,
-                    height: 60,
-                    margin: const EdgeInsets.symmetric(horizontal: 8),
+                    width: dotSize,
+                    height: dotSize,
+                    margin: EdgeInsets.symmetric(horizontal: dotMargin),
                     decoration: BoxDecoration(
                       color: isFilled ? const Color(0xFF6366F1) : Colors.grey.shade200,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: isFilled ? const Color(0xFF6366F1) : Colors.grey.shade300, width: 2),
                     ),
-                    child: isFilled ? const Center(child: Icon(Icons.circle, color: Colors.white, size: 16)) : null,
+                    child: isFilled
+                        ? Center(
+                            child: Icon(Icons.circle, color: Colors.white, size: isSmall ? 12 : 16),
+                          )
+                        : null,
                   );
                 }),
               ),

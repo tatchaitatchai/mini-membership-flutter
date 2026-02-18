@@ -2,7 +2,6 @@
 /// Copyright (c) 2026 POS ME Team. All rights reserved.
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,8 +18,6 @@ const String apiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: '
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  await SystemChrome.setPreferredOrientations([DeviceOrientation.landscapeLeft, DeviceOrientation.landscapeRight]);
 
   final sharedPreferences = await SharedPreferences.getInstance();
   const secureStorage = FlutterSecureStorage();

@@ -163,73 +163,241 @@ class _ProductsStepWidgetState extends ConsumerState<ProductsStepWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmall = screenWidth < 600;
+    final padding = isSmall ? 12.0 : 24.0;
+
     return Column(
       children: [
         Padding(
-          padding: const EdgeInsets.all(24),
-          child: Row(
+          padding: EdgeInsets.all(padding),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'ขั้นตอนที่ 2: เลือกสินค้า',
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Text(
-                          'ลูกค้า: ${widget.selectedCustomer?.fullName}',
-                          style: TextStyle(color: Colors.grey.shade600),
-                        ),
-                        if (widget.selectedCustomer != null && widget.selectedCustomer!.id != 'guest') ...[
-                          const SizedBox(width: 12),
-                          InkWell(
-                            onTap: _showCustomerPointsDialog,
-                            borderRadius: BorderRadius.circular(16),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.amber.shade100,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: Colors.amber.shade400),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.stars_rounded, size: 16, color: Colors.amber),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    'เช็คแต้มสะสม',
-                                    style: TextStyle(fontSize: 12, color: Colors.amber, fontWeight: FontWeight.w600),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ],
-                ),
+              Text(
+                'ขั้นตอนที่ 2: เลือกสินค้า',
+                style: TextStyle(fontSize: isSmall ? 18 : 24, fontWeight: FontWeight.bold),
               ),
-              SecondaryButton(text: 'ย้อนกลับ', onPressed: widget.onBack),
-              const SizedBox(width: 16),
-              PrimaryButton(text: 'ถัดไป', onPressed: widget.cart.isEmpty ? null : widget.onNext),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(
+                    'ลูกค้า: ${widget.selectedCustomer?.fullName}',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: isSmall ? 13 : 14),
+                  ),
+                  if (widget.selectedCustomer != null && widget.selectedCustomer!.id != 'guest')
+                    InkWell(
+                      onTap: _showCustomerPointsDialog,
+                      borderRadius: BorderRadius.circular(16),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.shade100,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: Colors.amber.shade400),
+                        ),
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.stars_rounded, size: 16, color: Colors.amber),
+                            SizedBox(width: 4),
+                            Text(
+                              'เช็คแต้มสะสม',
+                              style: TextStyle(fontSize: 12, color: Colors.amber, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  SecondaryButton(text: 'ย้อนกลับ', onPressed: widget.onBack),
+                  const SizedBox(width: 12),
+                  PrimaryButton(text: 'ถัดไป', onPressed: widget.cart.isEmpty ? null : widget.onNext),
+                ],
+              ),
             ],
           ),
         ),
         Expanded(
-          child: Row(
-            children: [
-              Expanded(flex: 2, child: _buildProductList()),
-              _buildCartSidebar(),
-            ],
-          ),
+          child: isSmall
+              ? _buildMobileProductLayout()
+              : Row(
+                  children: [
+                    Expanded(flex: 2, child: _buildProductList()),
+                    _buildCartSidebar(),
+                  ],
+                ),
         ),
       ],
+    );
+  }
+
+  Widget _buildMobileProductLayout() {
+    return Column(
+      children: [
+        Expanded(child: _buildProductList()),
+        _buildMobileCartBar(),
+      ],
+    );
+  }
+
+  Widget _buildMobileCartBar() {
+    final itemCount = widget.cart.values.fold<int>(0, (sum, qty) => sum + qty);
+    return GestureDetector(
+      onTap: _showMobileCartSheet,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, -2))],
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.shopping_cart, color: Colors.grey.shade700),
+            const SizedBox(width: 8),
+            Text('$itemCount รายการ', style: const TextStyle(fontWeight: FontWeight.w600)),
+            if (_detectedPromotions.isNotEmpty) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(color: Colors.green.shade100, borderRadius: BorderRadius.circular(12)),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.local_offer, size: 14, color: Colors.green.shade700),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${_detectedPromotions.length}',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.green.shade700),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const Spacer(),
+            Text(
+              Formatters.formatMoney(widget.total),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(width: 4),
+            Icon(Icons.keyboard_arrow_up, color: Colors.grey.shade500, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showMobileCartSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (ctx) => DraggableScrollableSheet(
+        initialChildSize: 0.65,
+        minChildSize: 0.3,
+        maxChildSize: 0.9,
+        expand: false,
+        builder: (_, scrollController) => Column(
+          children: [
+            // Handle
+            Container(
+              margin: const EdgeInsets.only(top: 12),
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(color: Colors.grey.shade300, borderRadius: BorderRadius.circular(2)),
+            ),
+            // Title
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                children: [
+                  const Icon(Icons.shopping_cart),
+                  const SizedBox(width: 8),
+                  const Text('ตะกร้า', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  const Spacer(),
+                  Text(
+                    '${widget.cart.values.fold<int>(0, (s, q) => s + q)} รายการ',
+                    style: TextStyle(color: Colors.grey.shade600),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            // Cart items + promotions + summary
+            Expanded(
+              child: ListView(
+                controller: scrollController,
+                padding: const EdgeInsets.all(16),
+                children: [
+                  if (widget.cart.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(32),
+                      child: Center(
+                        child: Text('ไม่มีสินค้า', style: TextStyle(color: Colors.grey.shade500)),
+                      ),
+                    )
+                  else
+                    ...widget.cart.entries.map((entry) {
+                      final product = ref.read(productRepositoryProvider).getProductById(entry.key);
+                      if (product == null) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
+                        child: Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(6),
+                              child: product.imageUrl != null
+                                  ? Image.network(
+                                      product.imageUrl!,
+                                      width: 40,
+                                      height: 40,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, __, ___) => _buildPlaceholderImage(size: 40),
+                                    )
+                                  : _buildPlaceholderImage(size: 40),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(product.name, style: const TextStyle(fontWeight: FontWeight.w500)),
+                                  Text(
+                                    '${entry.value} x ${Formatters.formatMoney(product.price)}',
+                                    style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Text(
+                              Formatters.formatMoney(product.price * entry.value),
+                              style: const TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  // Detected promotions
+                  if (_detectedPromotions.isNotEmpty) ...[const SizedBox(height: 12), _buildDetectedPromotionsBanner()],
+                  // Summary
+                  const Divider(height: 24),
+                  _buildSummaryRow('ยอดรวมย่อย', Formatters.formatMoney(widget.subtotal)),
+                  if (widget.discount > 0) _buildSummaryRow('ส่วนลด', '-${Formatters.formatMoney(widget.discount)}'),
+                  _buildSummaryRow('ยอดรวม', Formatters.formatMoney(widget.total), isTotal: true),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

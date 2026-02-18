@@ -126,17 +126,23 @@ class _PaymentStepWidgetState extends State<PaymentStepWidget> {
   Widget build(BuildContext context) {
     final remaining = widget.total - _totalReceived;
     final isPaymentComplete = remaining <= 0;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmall = screenWidth < 600;
+    final padding = isSmall ? 12.0 : 24.0;
 
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(padding),
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
               children: [
-                const Expanded(
-                  child: Text('ขั้นตอนที่ 4: ชำระเงิน', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+                Expanded(
+                  child: Text(
+                    'ขั้นตอนที่ 4: ชำระเงิน',
+                    style: TextStyle(fontSize: isSmall ? 18 : 24, fontWeight: FontWeight.bold),
+                  ),
                 ),
                 SecondaryButton(text: 'ย้อนกลับ', onPressed: widget.onBack),
               ],
@@ -182,6 +188,19 @@ class _PaymentStepWidgetState extends State<PaymentStepWidget> {
   }
 
   Widget _buildPaymentInputs() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmall = screenWidth < 600;
+
+    if (isSmall) {
+      return Column(
+        children: [
+          MoneyTextField(controller: _cashAmountController, label: 'เงินสด', onChanged: (_) => setState(() {})),
+          const SizedBox(height: 12),
+          MoneyTextField(controller: _transferAmountController, label: 'โอนเงิน', onChanged: (_) => setState(() {})),
+        ],
+      );
+    }
+
     return Row(
       children: [
         Expanded(

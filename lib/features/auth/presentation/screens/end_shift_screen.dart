@@ -170,13 +170,17 @@ class _EndShiftScreenState extends ConsumerState<EndShiftScreen> {
       );
     }
 
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmall = screenWidth < 600;
+    final padding = isSmall ? 12.0 : 24.0;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('ปิดกะการทำงาน'),
         leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.go('/home')),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(padding),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [

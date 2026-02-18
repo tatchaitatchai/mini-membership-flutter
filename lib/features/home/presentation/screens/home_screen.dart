@@ -25,77 +25,92 @@ class HomeScreen extends ConsumerWidget {
         onEndWork: () => context.go('/end-shift'),
         onLogout: () => _showLogoutConfirmation(context, ref),
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text('สวัสดีค่ะ $staffName!', style: const TextStyle(fontSize: 28, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            Text('คุณต้องการทำอะไรคะ?', style: TextStyle(fontSize: 16, color: Colors.grey.shade600)),
-            const SizedBox(height: 32),
-            Expanded(
-              child: GridView.count(
-                crossAxisCount: 3,
-                crossAxisSpacing: 24,
-                mainAxisSpacing: 24,
-                childAspectRatio: 1.2,
-                children: [
-                  _buildActionCard(
-                    context,
-                    icon: Icons.shopping_cart_rounded,
-                    title: 'รับออร์เดอร์',
-                    color: POSTheme.primaryColor,
-                    onTap: () => context.go('/create-order'),
-                  ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isSmall = constraints.maxWidth < 600;
+          final crossAxisCount = isSmall ? 2 : 3;
+          final gridSpacing = isSmall ? 12.0 : 24.0;
+          final padding = isSmall ? 16.0 : 24.0;
 
-                  _buildActionCard(
-                    context,
-                    icon: Icons.card_giftcard_rounded,
-                    title: 'แลกแต้มสะสม',
-                    color: Colors.amber,
-                    onTap: () => context.go('/redeem-points'),
+          return Padding(
+            padding: EdgeInsets.all(padding),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'สวัสดีค่ะ $staffName!',
+                  style: TextStyle(fontSize: isSmall ? 20 : 28, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'คุณต้องการทำอะไรคะ?',
+                  style: TextStyle(fontSize: isSmall ? 14 : 16, color: Colors.grey.shade600),
+                ),
+                SizedBox(height: isSmall ? 16 : 32),
+                Expanded(
+                  child: GridView.count(
+                    crossAxisCount: crossAxisCount,
+                    crossAxisSpacing: gridSpacing,
+                    mainAxisSpacing: gridSpacing,
+                    childAspectRatio: isSmall ? 1.0 : 1.2,
+                    children: [
+                      _buildActionCard(
+                        context,
+                        icon: Icons.shopping_cart_rounded,
+                        title: 'รับออร์เดอร์',
+                        color: POSTheme.primaryColor,
+                        onTap: () => context.go('/create-order'),
+                      ),
+
+                      _buildActionCard(
+                        context,
+                        icon: Icons.card_giftcard_rounded,
+                        title: 'แลกแต้มสะสม',
+                        color: Colors.amber,
+                        onTap: () => context.go('/redeem-points'),
+                      ),
+                      _buildActionCard(
+                        context,
+                        icon: Icons.inventory_2_rounded,
+                        title: 'รับสินค้า',
+                        color: POSTheme.successColor,
+                        onTap: () => context.go('/receive-goods'),
+                      ),
+                      _buildActionCard(
+                        context,
+                        icon: Icons.output_rounded,
+                        title: 'เบิกสินค้า',
+                        color: POSTheme.orangeColor,
+                        onTap: () => context.go('/withdraw-goods'),
+                      ),
+                      _buildActionCard(
+                        context,
+                        icon: Icons.edit_rounded,
+                        title: 'ปรับสต็อก',
+                        color: POSTheme.purpleColor,
+                        onTap: () => context.go('/adjust-stock'),
+                      ),
+                      _buildActionCard(
+                        context,
+                        icon: Icons.warning_rounded,
+                        title: 'แจ้งเตือนสต็อกต่ำ',
+                        color: POSTheme.dangerColor,
+                        onTap: () => context.go('/low-stock'),
+                      ),
+                      _buildActionCard(
+                        context,
+                        icon: Icons.receipt_long_rounded,
+                        title: 'ออร์เดอร์',
+                        color: POSTheme.infoColor,
+                        onTap: () => context.go('/orders'),
+                      ),
+                    ],
                   ),
-                  _buildActionCard(
-                    context,
-                    icon: Icons.inventory_2_rounded,
-                    title: 'รับสินค้า',
-                    color: POSTheme.successColor,
-                    onTap: () => context.go('/receive-goods'),
-                  ),
-                  _buildActionCard(
-                    context,
-                    icon: Icons.output_rounded,
-                    title: 'เบิกสินค้า',
-                    color: POSTheme.orangeColor,
-                    onTap: () => context.go('/withdraw-goods'),
-                  ),
-                  _buildActionCard(
-                    context,
-                    icon: Icons.edit_rounded,
-                    title: 'ปรับสต็อก',
-                    color: POSTheme.purpleColor,
-                    onTap: () => context.go('/adjust-stock'),
-                  ),
-                  _buildActionCard(
-                    context,
-                    icon: Icons.warning_rounded,
-                    title: 'แจ้งเตือนสต็อกต่ำ',
-                    color: POSTheme.dangerColor,
-                    onTap: () => context.go('/low-stock'),
-                  ),
-                  _buildActionCard(
-                    context,
-                    icon: Icons.receipt_long_rounded,
-                    title: 'ออร์เดอร์',
-                    color: POSTheme.infoColor,
-                    onTap: () => context.go('/orders'),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

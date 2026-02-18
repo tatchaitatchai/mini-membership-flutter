@@ -18,37 +18,58 @@ class POSNumberPad extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final buttonSize = (screenWidth < 400)
+        ? 56.0
+        : (screenWidth < 600)
+        ? 64.0
+        : 80.0;
+    final buttonHeight = buttonSize * 0.8;
+    final gap = (screenWidth < 400)
+        ? 6.0
+        : (screenWidth < 600)
+        ? 8.0
+        : 12.0;
+    final fontSize = (screenWidth < 400)
+        ? 18.0
+        : (screenWidth < 600)
+        ? 20.0
+        : 24.0;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _buildRow(['1', '2', '3']),
-        const SizedBox(height: 12),
-        _buildRow(['4', '5', '6']),
-        const SizedBox(height: 12),
-        _buildRow(['7', '8', '9']),
-        const SizedBox(height: 12),
-        _buildRow([if (showDecimal) '.' else '', '0', 'backspace']),
+        _buildRow(['1', '2', '3'], buttonSize, buttonHeight, gap, fontSize),
+        SizedBox(height: gap),
+        _buildRow(['4', '5', '6'], buttonSize, buttonHeight, gap, fontSize),
+        SizedBox(height: gap),
+        _buildRow(['7', '8', '9'], buttonSize, buttonHeight, gap, fontSize),
+        SizedBox(height: gap),
+        _buildRow([if (showDecimal) '.' else '', '0', 'backspace'], buttonSize, buttonHeight, gap, fontSize),
       ],
     );
   }
 
-  Widget _buildRow(List<String> buttons) {
+  Widget _buildRow(List<String> buttons, double size, double height, double gap, double fontSize) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: buttons.map((button) {
         if (button.isEmpty) {
-          return const SizedBox(width: 80, height: 64);
+          return SizedBox(width: size, height: height);
         }
-        return Padding(padding: const EdgeInsets.symmetric(horizontal: 6), child: _buildButton(button));
+        return Padding(
+          padding: EdgeInsets.symmetric(horizontal: gap / 2),
+          child: _buildButton(button, size, height, fontSize),
+        );
       }).toList(),
     );
   }
 
-  Widget _buildButton(String button) {
+  Widget _buildButton(String button, double size, double height, double fontSize) {
     if (button == 'backspace') {
       return SizedBox(
-        width: 80,
-        height: 64,
+        width: size,
+        height: height,
         child: ElevatedButton(
           onPressed: onBackspace,
           style: ElevatedButton.styleFrom(
@@ -56,14 +77,14 @@ class POSNumberPad extends StatelessWidget {
             backgroundColor: Colors.grey.shade200,
             foregroundColor: Colors.black87,
           ),
-          child: const Icon(Icons.backspace_outlined, size: 24),
+          child: Icon(Icons.backspace_outlined, size: fontSize),
         ),
       );
     }
 
     return SizedBox(
-      width: 80,
-      height: 64,
+      width: size,
+      height: height,
       child: ElevatedButton(
         onPressed: () => onNumberPressed(button),
         style: ElevatedButton.styleFrom(
@@ -72,7 +93,10 @@ class POSNumberPad extends StatelessWidget {
           foregroundColor: Colors.black87,
           side: BorderSide(color: Colors.grey.shade300),
         ),
-        child: Text(button, style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w600)),
+        child: Text(
+          button,
+          style: TextStyle(fontSize: fontSize, fontWeight: FontWeight.w600),
+        ),
       ),
     );
   }

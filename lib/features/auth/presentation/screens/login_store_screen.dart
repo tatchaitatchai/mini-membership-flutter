@@ -38,7 +38,6 @@ class _LoginStoreScreenState extends ConsumerState<LoginStoreScreen> {
 
     final authRepo = ref.read(authRepositoryProvider);
     final loginResponse = await authRepo.loginStore(_emailController.text.trim(), _passwordController.text);
-
     if (!mounted) return;
 
     if (loginResponse != null) {
@@ -48,6 +47,7 @@ class _LoginStoreScreenState extends ConsumerState<LoginStoreScreen> {
         context.go('/select-branch');
       }
     } else {
+      print('Login failed: $loginResponse');
       setState(() {
         _isLoading = false;
         _errorMessage = 'อีเมลร้านค้า หรือ พาสเวิด ไม่ถูกต้อง';
@@ -57,10 +57,13 @@ class _LoginStoreScreenState extends ConsumerState<LoginStoreScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmall = screenWidth < 600;
+
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(32),
+          padding: EdgeInsets.all(isSmall ? 20 : 32),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 500),
             child: Form(
@@ -69,20 +72,24 @@ class _LoginStoreScreenState extends ConsumerState<LoginStoreScreen> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(Icons.store, size: 80, color: Color(0xFF6366F1)),
-                  const SizedBox(height: 24),
-                  const Text(
+                  Icon(Icons.store, size: isSmall ? 56 : 80, color: const Color(0xFF6366F1)),
+                  SizedBox(height: isSmall ? 16 : 24),
+                  Text(
                     'POS ME',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Color(0xFF6366F1)),
+                    style: TextStyle(
+                      fontSize: isSmall ? 28 : 36,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF6366F1),
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'ระบบขายหน้าร้านสมัยใหม่',
                     textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+                    style: TextStyle(fontSize: isSmall ? 14 : 16, color: Colors.grey.shade600),
                   ),
-                  const SizedBox(height: 48),
+                  SizedBox(height: isSmall ? 32 : 48),
                   TextFormField(
                     controller: _emailController,
                     decoration: const InputDecoration(

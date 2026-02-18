@@ -61,21 +61,25 @@ class _PromotionStepWidgetState extends ConsumerState<PromotionStepWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isSmall = screenWidth < 600;
+    final padding = isSmall ? 12.0 : 24.0;
+
     return Padding(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(padding),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          Text(
+            'ขั้นตอนที่ 3: ใช้โปรโมชั่น (ถ้ามี)',
+            style: TextStyle(fontSize: isSmall ? 18 : 24, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 12),
           Row(
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              const Expanded(
-                child: Text(
-                  'ขั้นตอนที่ 3: ใช้โปรโมชั่น (ถ้ามี)',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
-              ),
               SecondaryButton(text: 'ย้อนกลับ', onPressed: widget.onBack),
-              const SizedBox(width: 16),
+              const SizedBox(width: 12),
               PrimaryButton(text: 'ถัดไป', onPressed: widget.onNext),
             ],
           ),

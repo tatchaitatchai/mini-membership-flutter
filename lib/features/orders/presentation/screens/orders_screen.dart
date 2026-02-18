@@ -36,8 +36,10 @@ class OrdersScreen extends ConsumerWidget {
           }
 
           final orders = snapshot.data!;
+          final screenWidth = MediaQuery.of(context).size.width;
+          final isSmall = screenWidth < 600;
           return ListView.builder(
-            padding: const EdgeInsets.all(24),
+            padding: EdgeInsets.all(isSmall ? 12 : 24),
             itemCount: orders.length,
             itemBuilder: (context, index) {
               final order = orders[index];
