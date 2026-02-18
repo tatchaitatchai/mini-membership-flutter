@@ -5,6 +5,7 @@ import '../../../../common/widgets/primary_button.dart';
 import '../../../../common/widgets/secondary_button.dart';
 import '../../../../common/utils/validators.dart';
 import '../../data/auth_repository.dart';
+import '../../../shift/data/shift_repository.dart';
 
 class LoginStoreScreen extends ConsumerStatefulWidget {
   const LoginStoreScreen({super.key});
@@ -37,9 +38,12 @@ class _LoginStoreScreenState extends ConsumerState<LoginStoreScreen> {
     });
 
     final authRepo = ref.read(authRepositoryProvider);
+    final shiftRepo = ref.read(shiftRepositoryProvider);
+
+    await shiftRepo.clearBranchSelection();
+
     final loginResponse = await authRepo.loginStore(_emailController.text.trim(), _passwordController.text);
     if (!mounted) return;
-
     if (loginResponse != null) {
       if (loginResponse.branchId != null) {
         context.go('/open-shift');
@@ -47,7 +51,6 @@ class _LoginStoreScreenState extends ConsumerState<LoginStoreScreen> {
         context.go('/select-branch');
       }
     } else {
-      print('Login failed: $loginResponse');
       setState(() {
         _isLoading = false;
         _errorMessage = 'อีเมลร้านค้า หรือ พาสเวิด ไม่ถูกต้อง';

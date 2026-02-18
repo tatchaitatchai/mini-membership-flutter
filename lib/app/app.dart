@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'router.dart';
 import 'theme.dart';
 import '../features/auth/presentation/widgets/lock_screen.dart';
+import '../common/services/api_client.dart';
+import '../features/auth/data/auth_repository.dart';
+import '../features/shift/data/shift_repository.dart';
 
 class POSMeApp extends ConsumerWidget {
   const POSMeApp({super.key});
@@ -10,6 +13,14 @@ class POSMeApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(routerProvider);
+    final apiClient = ref.watch(apiClientProvider);
+    final authRepo = ref.watch(authRepositoryProvider);
+    final shiftRepo = ref.watch(shiftRepositoryProvider);
+
+    apiClient.onUnauthorized = () async {
+      await authRepo.logout();
+      await shiftRepo.clearBranchSelection();
+    };
 
     return MaterialApp.router(
       title: 'POS ME',

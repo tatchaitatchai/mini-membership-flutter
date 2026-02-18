@@ -13,7 +13,10 @@ class OrdersScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('ออร์เดอร์'),
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.go('/home')),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.canPop() ? context.pop() : null,
+        ),
       ),
       body: FutureBuilder(
         future: ref.read(orderRepositoryProvider).getAllOrders(),
@@ -39,7 +42,12 @@ class OrdersScreen extends ConsumerWidget {
           final screenWidth = MediaQuery.of(context).size.width;
           final isSmall = screenWidth < 600;
           return ListView.builder(
-            padding: EdgeInsets.all(isSmall ? 12 : 24),
+            padding: EdgeInsets.only(
+              left: isSmall ? 12 : 24,
+              right: isSmall ? 12 : 24,
+              top: isSmall ? 12 : 24,
+              bottom: (isSmall ? 12 : 24) + MediaQuery.of(context).viewPadding.bottom,
+            ),
             itemCount: orders.length,
             itemBuilder: (context, index) {
               final order = orders[index];
@@ -85,7 +93,7 @@ class OrdersScreen extends ConsumerWidget {
                       const Icon(Icons.chevron_right),
                     ],
                   ),
-                  onTap: () => context.go('/orders/${order.id}'),
+                  onTap: () => context.push('/orders/${order.id}'),
                 ),
               );
             },

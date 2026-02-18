@@ -21,13 +21,22 @@ class AuthRepository {
   AuthRepository(this._secureStorage, this._prefs, this._apiClient);
 
   Future<LoginResponse?> loginStore(String email, String password) async {
+    await _apiClient.clearSessionToken();
+    await _prefs.remove(_storeEmailKey);
+    await _prefs.remove(_storeNameKey);
+    await _prefs.remove(_storeIdKey);
+    await _prefs.remove(_branchIdKey);
+    await _prefs.remove(_staffNameKey);
+    await _prefs.remove(_staffIdKey);
+    await _prefs.remove(_isManagerKey);
+    await _secureStorage.delete(key: _pinVerifiedKey);
+
     final response = await _apiClient.post<LoginResponse>(
       '/api/v2/auth/login',
       body: {'email': email, 'password': password},
       fromJson: LoginResponse.fromJson,
     );
 
-    print('Login response: ${response.error}');
 
     if (response.isSuccess && response.data != null) {
       final data = response.data!;

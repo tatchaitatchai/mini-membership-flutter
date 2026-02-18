@@ -36,7 +36,10 @@ class _LowStockScreenState extends ConsumerState<LowStockScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('แจ้งเตือนสต็อกต่ำ'),
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.go('/home')),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.canPop() ? context.pop() : null,
+        ),
         actions: [IconButton(icon: const Icon(Icons.refresh), onPressed: _refresh)],
       ),
       body: FutureBuilder<LowStockResponse?>(
@@ -127,7 +130,12 @@ class _LowStockScreenState extends ConsumerState<LowStockScreen> {
                 // List
                 Expanded(
                   child: ListView.builder(
-                    padding: const EdgeInsets.all(16),
+                    padding: EdgeInsets.only(
+                      left: 16,
+                      right: 16,
+                      top: 16,
+                      bottom: 16 + MediaQuery.of(context).viewPadding.bottom,
+                    ),
                     itemCount: items.length,
                     itemBuilder: (context, index) => _buildItemCard(items[index]),
                   ),

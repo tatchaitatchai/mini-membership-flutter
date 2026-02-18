@@ -143,7 +143,10 @@ class _ReceiveGoodsScreenState extends ConsumerState<ReceiveGoodsScreen> with Si
       backgroundColor: Colors.grey.shade50,
       appBar: AppBar(
         title: const Text('รับสินค้า'),
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.go('/home')),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.canPop() ? context.pop() : null,
+        ),
         bottom: TabBar(
           controller: _tabController,
           indicatorWeight: 3,
@@ -184,7 +187,12 @@ class _ReceiveGoodsScreenState extends ConsumerState<ReceiveGoodsScreen> with Si
           return RefreshIndicator(
             onRefresh: () async => _refresh(),
             child: ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 16,
+                bottom: 16 + MediaQuery.of(context).viewPadding.bottom,
+              ),
               itemCount: transfers.length,
               itemBuilder: (context, index) => _buildPendingCard(transfers[index], theme),
             ),
@@ -420,7 +428,12 @@ class _ReceiveGoodsScreenState extends ConsumerState<ReceiveGoodsScreen> with Si
           return RefreshIndicator(
             onRefresh: () async => _refresh(),
             child: ListView.builder(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 16,
+                bottom: 16 + MediaQuery.of(context).viewPadding.bottom,
+              ),
               itemCount: received.length,
               itemBuilder: (context, index) => _buildHistoryCard(received[index], theme),
             ),

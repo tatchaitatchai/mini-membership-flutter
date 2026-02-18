@@ -11,6 +11,7 @@ final apiClientProvider = Provider<ApiClient>((ref) {
 class ApiClient {
   final String baseUrl;
   final FlutterSecureStorage _secureStorage;
+  Function()? onUnauthorized;
 
   static const _sessionTokenKey = 'session_token';
 
@@ -116,6 +117,9 @@ class ApiClient {
       }
       return ApiResponse.success(body as T);
     } else {
+      if (response.statusCode == 401) {
+        onUnauthorized?.call();
+      }
       final error = body['error'] as String? ?? 'Unknown error';
       return ApiResponse.error(error, statusCode: response.statusCode);
     }
@@ -130,6 +134,9 @@ class ApiClient {
       }
       return ApiResponse.success([]);
     } else {
+      if (response.statusCode == 401) {
+        onUnauthorized?.call();
+      }
       final body = response.body.isNotEmpty ? jsonDecode(response.body) as Map<String, dynamic> : <String, dynamic>{};
       final error = body['error'] as String? ?? 'Unknown error';
       return ApiResponse.error(error, statusCode: response.statusCode);

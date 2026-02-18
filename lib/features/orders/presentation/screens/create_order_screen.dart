@@ -212,7 +212,9 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
             text: 'เสร็จสิ้น',
             onPressed: () {
               Navigator.of(context).pop();
-              context.go('/home');
+              if (context.canPop()) {
+                context.pop();
+              }
             },
           ),
         ],
@@ -238,7 +240,10 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('สร้างออร์เดอร์'),
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.go('/home')),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.canPop() ? context.pop() : null,
+        ),
       ),
       body: SafeArea(child: _buildStepContent()),
     );

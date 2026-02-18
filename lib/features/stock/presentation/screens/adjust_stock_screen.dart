@@ -156,7 +156,10 @@ class _AdjustStockScreenState extends ConsumerState<AdjustStockScreen> with Sing
     return Scaffold(
       appBar: AppBar(
         title: const Text('ปรับสต็อก'),
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.go('/home')),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.canPop() ? context.pop() : null,
+        ),
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -173,7 +176,7 @@ class _AdjustStockScreenState extends ConsumerState<AdjustStockScreen> with Sing
     final theme = Theme.of(context);
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 16 + MediaQuery.of(context).viewPadding.bottom),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -459,7 +462,12 @@ class _AdjustStockScreenState extends ConsumerState<AdjustStockScreen> with Sing
               // List
               Expanded(
                 child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.only(
+                    left: 16,
+                    right: 16,
+                    top: 16,
+                    bottom: 16 + MediaQuery.of(context).viewPadding.bottom,
+                  ),
                   itemCount: movements.length,
                   itemBuilder: (context, index) => _buildMovementCard(movements[index]),
                 ),

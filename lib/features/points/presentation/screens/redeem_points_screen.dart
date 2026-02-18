@@ -83,7 +83,10 @@ class _RedeemPointsScreenState extends ConsumerState<RedeemPointsScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('แลกแต้มสะสม'),
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.go('/home')),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.canPop() ? context.pop() : null,
+        ),
       ),
       body: _buildStepContent(),
     );
@@ -246,7 +249,12 @@ class _RedeemProductsStep extends StatelessWidget {
                   ),
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.all(16),
+                  padding: EdgeInsets.only(
+                    left: 16,
+                    right: 16,
+                    top: 16,
+                    bottom: 16 + MediaQuery.of(context).viewPadding.bottom,
+                  ),
                   itemCount: products.length,
                   itemBuilder: (context, index) {
                     return _buildProductCard(context, products[index]);

@@ -68,7 +68,7 @@ class _WithdrawGoodsScreenState extends ConsumerState<WithdrawGoodsScreen> with 
 
       if (result != null) {
         ToastHelper.success(context, 'เบิกสินค้าสำเร็จ');
-        context.go('/home');
+        if (context.canPop()) context.pop();
       } else {
         ToastHelper.error(context, 'เกิดข้อผิดพลาดในการเบิกสินค้า');
         setState(() => _isLoading = false);
@@ -85,7 +85,10 @@ class _WithdrawGoodsScreenState extends ConsumerState<WithdrawGoodsScreen> with 
     return Scaffold(
       appBar: AppBar(
         title: const Text('เบิกสินค้า'),
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.go('/home')),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.canPop() ? context.pop() : null,
+        ),
         bottom: TabBar(
           controller: _tabController,
           tabs: const [
@@ -123,7 +126,12 @@ class _WithdrawGoodsScreenState extends ConsumerState<WithdrawGoodsScreen> with 
 
               final products = snapshot.data!;
               return ListView.builder(
-                padding: const EdgeInsets.all(24),
+                padding: EdgeInsets.only(
+                  left: 24,
+                  right: 24,
+                  top: 24,
+                  bottom: 24 + MediaQuery.of(context).viewPadding.bottom,
+                ),
                 itemCount: products.length,
                 itemBuilder: (context, index) {
                   final product = products[index];
@@ -199,7 +207,12 @@ class _WithdrawGoodsScreenState extends ConsumerState<WithdrawGoodsScreen> with 
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: 24 + MediaQuery.of(context).viewPadding.bottom,
+          ),
           itemCount: response.transfers.length,
           itemBuilder: (context, index) {
             final transfer = response.transfers[index];

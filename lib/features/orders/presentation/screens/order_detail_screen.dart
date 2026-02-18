@@ -39,7 +39,7 @@ class OrderDetailScreen extends ConsumerWidget {
 
     if (success) {
       ToastHelper.success(context, 'ยกเลิกออร์เดอร์สำเร็จ');
-      context.go('/orders');
+      if (context.canPop()) context.pop();
     } else {
       ToastHelper.error(context, 'ไม่สามารถยกเลิกออร์เดอร์ได้');
     }
@@ -50,7 +50,10 @@ class OrderDetailScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('รายละเอียดออร์เดอร์'),
-        leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.go('/orders')),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.canPop() ? context.pop() : null,
+        ),
       ),
       body: FutureBuilder(
         future: ref.read(orderRepositoryProvider).getOrderById(orderId),
@@ -67,7 +70,12 @@ class OrderDetailScreen extends ConsumerWidget {
           final screenWidth = MediaQuery.of(context).size.width;
           final isSmall = screenWidth < 600;
           return SingleChildScrollView(
-            padding: EdgeInsets.all(isSmall ? 12 : 24),
+            padding: EdgeInsets.only(
+              left: isSmall ? 12 : 24,
+              right: isSmall ? 12 : 24,
+              top: isSmall ? 12 : 24,
+              bottom: (isSmall ? 12 : 24) + MediaQuery.of(context).viewPadding.bottom,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
