@@ -8,6 +8,7 @@ import '../../../../common/widgets/secondary_button.dart';
 import '../../../../common/widgets/money_text_field.dart';
 import '../../../../common/utils/formatters.dart';
 import '../../../../common/utils/toast_helper.dart';
+import '../../../../common/utils/image_helper.dart';
 import '../../../auth/presentation/widgets/lock_screen.dart';
 
 class PaymentStepWidget extends StatefulWidget {
@@ -15,7 +16,7 @@ class PaymentStepWidget extends StatefulWidget {
   final double discount;
   final double total;
   final VoidCallback onBack;
-  final Function(double cashAmount, double transferAmount, File? slipImage) onCompleteOrder;
+  final Function(double cashAmount, double transferAmount, List<File>? slipImages) onCompleteOrder;
   final bool isLoading;
 
   const PaymentStepWidget({
@@ -35,7 +36,7 @@ class PaymentStepWidget extends StatefulWidget {
 class _PaymentStepWidgetState extends State<PaymentStepWidget> {
   final _cashAmountController = TextEditingController();
   final _transferAmountController = TextEditingController();
-  File? _slipImage;
+  final List<File> _slipImages = [];
 
   @override
   void dispose() {
@@ -75,12 +76,19 @@ class _PaymentStepWidgetState extends State<PaymentStepWidget> {
     if (source == null) return;
 
     try {
-      // Skip lock screen when opening camera/gallery
       ProviderScope.containerOf(context).read(lockScreenProvider.notifier).setSkipNextLock();
       final picker = ImagePicker();
       final pickedFile = await picker.pickImage(source: source);
       if (pickedFile != null) {
-        setState(() => _slipImage = File(pickedFile.path));
+        final compressedFile = await ImageHelper.compressAndResizeImage(
+          File(pickedFile.path),
+          maxWidth: 1024,
+          maxHeight: 1024,
+          quality: 60,
+        );
+        if (compressedFile != null) {
+          setState(() => _slipImages.add(compressedFile));
+        }
       }
     } catch (e) {
       if (!mounted) return;
@@ -99,12 +107,12 @@ class _PaymentStepWidgetState extends State<PaymentStepWidget> {
       return;
     }
 
-    if (_transferAmount > 0 && _slipImage == null) {
+    if (_transferAmount > 0 && _slipImages.isEmpty) {
       ToastHelper.warning(context, 'กรุณาถ่ายรูปสลิปโอนเงิน');
       return;
     }
 
-    widget.onCompleteOrder(_cashAmount, _transferAmount, _slipImage);
+    widget.onCompleteOrder(_cashAmount, _transferAmount, _slipImages.isNotEmpty ? _slipImages : null);
   }
 
   Widget _buildSummaryRow(String label, String value, {bool isTotal = false}) {
@@ -234,32 +242,54 @@ class _PaymentStepWidgetState extends State<PaymentStepWidget> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('สลิปโอนเงิน', style: TextStyle(fontWeight: FontWeight.bold)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('สลิปโอนเงิน', style: TextStyle(fontWeight: FontWeight.bold)),
+                if (_slipImages.isNotEmpty)
+                  Text('${_slipImages.length} รูป', style: TextStyle(color: Colors.grey[600])),
+              ],
+            ),
             const SizedBox(height: 12),
-            if (_slipImage != null) ...[
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: Image.file(_slipImage!, height: 200, fit: BoxFit.cover),
+            if (_slipImages.isNotEmpty) ...[
+              SizedBox(
+                height: 120,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  itemCount: _slipImages.length,
+                  itemBuilder: (context, index) {
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: Stack(
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Image.file(_slipImages[index], height: 120, width: 120, fit: BoxFit.cover),
+                          ),
+                          Positioned(
+                            top: 4,
+                            right: 4,
+                            child: GestureDetector(
+                              onTap: () => setState(() => _slipImages.removeAt(index)),
+                              child: Container(
+                                padding: const EdgeInsets.all(4),
+                                decoration: BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+                                child: const Icon(Icons.close, color: Colors.white, size: 16),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
               ),
               const SizedBox(height: 12),
             ],
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: _pickSlipImage,
-                    icon: const Icon(Icons.camera_alt),
-                    label: Text(_slipImage == null ? 'ถ่ายรูปสลิป' : 'ถ่ายใหม่'),
-                  ),
-                ),
-                if (_slipImage != null) ...[
-                  const SizedBox(width: 8),
-                  IconButton(
-                    onPressed: () => setState(() => _slipImage = null),
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                  ),
-                ],
-              ],
+            OutlinedButton.icon(
+              onPressed: _pickSlipImage,
+              icon: const Icon(Icons.add_a_photo),
+              label: Text(_slipImages.isEmpty ? 'ถ่ายรูปสลิป' : 'เพิ่มรูปสลิป'),
             ),
           ],
         ),

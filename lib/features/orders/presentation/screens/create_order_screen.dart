@@ -110,7 +110,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
 
   double get _total => _subtotal - _discount;
 
-  Future<void> _completeOrder(double cashAmount, double transferAmount, File? slipImage) async {
+  Future<void> _completeOrder(double cashAmount, double transferAmount, List<File>? slipImages) async {
     setState(() => _isLoading = true);
 
     final change = cashAmount > 0 ? ((cashAmount + transferAmount) - _total).clamp(0.0, cashAmount) : 0.0;
@@ -152,6 +152,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       payments: payments,
       changeAmount: change,
       promotionId: _selectedPromotion?.id,
+      slipImages: slipImages,
     );
 
     if (!mounted) return;
@@ -174,7 +175,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         transferAmount: transferAmount,
         change: change,
         promotionId: _selectedPromotion?.id.toString(),
-        attachedSlipUrl: slipImage?.path,
+        attachedSlipUrl: slipImages != null && slipImages.isNotEmpty ? slipImages.first.path : null,
         status: OrderStatus.completed,
         createdAt: apiResponse.createdAt,
         createdBy: ref.read(authRepositoryProvider).getCurrentStaffName() ?? 'Staff',
