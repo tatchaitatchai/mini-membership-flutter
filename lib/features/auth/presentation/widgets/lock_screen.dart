@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../common/widgets/pos_number_pad.dart';
 import '../../data/auth_repository.dart';
 import '../../../shift/data/shift_repository.dart';
+import '../../../home/presentation/screens/home_screen.dart';
 
 final lockScreenProvider = StateNotifierProvider<LockScreenNotifier, bool>((ref) {
   return LockScreenNotifier(ref);
@@ -33,7 +34,7 @@ class LockScreenNotifier extends StateNotifier<bool> {
 
   void lock() {
     final authRepo = ref.read(authRepositoryProvider);
-    if (authRepo.isPinVerified()) {
+    if (authRepo.isStoreLoggedIn() && authRepo.isPinVerified()) {
       authRepo.invalidatePin();
       state = true;
     }
@@ -90,6 +91,15 @@ class _LockScreenState extends ConsumerState<LockScreen> {
   bool _isLoading = false;
   String? _errorMessage;
 
+  @override
+  void initState() {
+    super.initState();
+    // Dismiss keyboard when lock screen appears to prevent overflow
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      FocusScope.of(context).unfocus();
+    });
+  }
+
   void _onNumberPressed(String number) {
     if (_pin.length < 4) {
       setState(() {
@@ -129,6 +139,8 @@ class _LockScreenState extends ConsumerState<LockScreen> {
       if (currentShift != null && currentShift.hasActiveShift && currentShift.shift != null) {
         // Shift is still open - sync and unlock
         await shiftRepo.syncShiftToLocal(currentShift.shift!);
+        // Invalidate staffNameProvider to refresh home screen
+        ref.invalidate(staffNameProvider);
         ref.read(lockScreenProvider.notifier).unlock();
       } else {
         // Shift was closed - clear local data and redirect to open-shift

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../common/widgets/pos_number_pad.dart';
 import '../../data/auth_repository.dart';
 import '../../../shift/data/shift_repository.dart';
+import '../../../home/presentation/screens/home_screen.dart';
 
 class StaffPinScreen extends ConsumerStatefulWidget {
   const StaffPinScreen({super.key});
@@ -56,6 +57,8 @@ class _StaffPinScreenState extends ConsumerState<StaffPinScreen> {
       if (currentShift != null && currentShift.hasActiveShift && currentShift.shift != null) {
         // Shift is open - sync to local and go to home
         await shiftRepo.syncShiftToLocal(currentShift.shift!);
+        // Invalidate staffNameProvider to refresh home screen
+        ref.invalidate(staffNameProvider);
         context.go('/home');
       } else {
         // No open shift - go to open shift screen

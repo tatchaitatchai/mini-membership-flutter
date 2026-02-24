@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:permission_handler/permission_handler.dart';
 import '../../../../app/theme.dart';
 import '../../../../common/widgets/primary_button.dart';
 import '../../../../common/widgets/secondary_button.dart';
@@ -76,26 +75,9 @@ class _PaymentStepWidgetState extends State<PaymentStepWidget> {
 
     if (source == null) return;
 
-    // Request appropriate permission based on source
-    if (source == ImageSource.camera) {
-      final status = await Permission.camera.request();
-      if (!status.isGranted) {
-        if (!mounted) return;
-        ToastHelper.error(context, 'กรุณาอนุญาตการเข้าถึงกล้องในการตั้งค่า');
-        return;
-      }
-    } else if (source == ImageSource.gallery) {
-      // For Android 13+ (API 33+), use photos permission
-      // For older versions, use storage permission
-      final status = await Permission.photos.request();
-      if (!status.isGranted) {
-        if (!mounted) return;
-        ToastHelper.error(context, 'กรุณาอนุญาตการเข้าถึงคลังรูปภาพในการตั้งค่า');
-        return;
-      }
-    }
-
     try {
+      // On iOS, image_picker handles permissions automatically
+      // Manual permission check causes permanentlyDenied state issues
       ProviderScope.containerOf(context).read(lockScreenProvider.notifier).setSkipNextLock();
       final picker = ImagePicker();
       final pickedFile = await picker.pickImage(source: source);

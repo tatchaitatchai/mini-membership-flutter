@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../features/splash/presentation/screens/splash_screen.dart';
 import '../features/auth/presentation/screens/login_store_screen.dart';
 import '../features/auth/presentation/screens/register_business_screen.dart';
 import '../features/auth/presentation/screens/select_branch_screen.dart';
@@ -23,8 +24,15 @@ final routerProvider = Provider<GoRouter>((ref) {
   final shiftRepo = ref.watch(shiftRepositoryProvider);
 
   return GoRouter(
-    initialLocation: '/login',
+    initialLocation: '/',
     redirect: (context, state) {
+      final isSplashRoute = state.matchedLocation == '/';
+
+      // Allow splash screen to show
+      if (isSplashRoute) {
+        return null;
+      }
+
       final isStoreLoggedIn = authRepo.isStoreLoggedIn();
       final isShiftOpen = shiftRepo.isShiftOpen();
       final isPinVerified = authRepo.isPinVerified();
@@ -72,6 +80,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
+      GoRoute(path: '/', builder: (context, state) => const SplashScreen()),
       GoRoute(path: '/login', builder: (context, state) => const LoginStoreScreen()),
       GoRoute(path: '/register', builder: (context, state) => const RegisterBusinessScreen()),
       GoRoute(path: '/select-branch', builder: (context, state) => const SelectBranchScreen()),

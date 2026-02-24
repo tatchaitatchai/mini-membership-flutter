@@ -27,6 +27,7 @@ class LoginResponse {
 class SessionInfo {
   final int storeId;
   final String storeName;
+  final String? storeEmail;
   final int? branchId;
   final String? branchName;
   final int? staffId;
@@ -36,6 +37,7 @@ class SessionInfo {
   SessionInfo({
     required this.storeId,
     required this.storeName,
+    this.storeEmail,
     this.branchId,
     this.branchName,
     this.staffId,
@@ -47,6 +49,7 @@ class SessionInfo {
     return SessionInfo(
       storeId: json['store_id'] as int,
       storeName: json['store_name'] as String,
+      storeEmail: json['store_email'] as String?,
       branchId: json['branch_id'] as int?,
       branchName: json['branch_name'] as String?,
       staffId: json['staff_id'] as int?,

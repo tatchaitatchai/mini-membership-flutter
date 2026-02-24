@@ -36,6 +36,9 @@ class AuthRepository {
       final session = response.data!;
       await _prefs.setInt(_storeIdKey, session.storeId);
       await _prefs.setString(_storeNameKey, session.storeName);
+      if (session.storeEmail != null) {
+        await _prefs.setString(_storeEmailKey, session.storeEmail!);
+      }
       if (session.branchId != null) {
         await _prefs.setInt(_branchIdKey, session.branchId!);
       }

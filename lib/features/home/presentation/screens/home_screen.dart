@@ -5,14 +5,19 @@ import '../../../../common/widgets/responsive_scaffold.dart';
 import '../../../auth/data/auth_repository.dart';
 import '../../../shift/data/shift_repository.dart';
 
+// Provider to watch staff name changes - auto-dispose to refresh on rebuild
+final staffNameProvider = Provider.autoDispose<String>((ref) {
+  final authRepo = ref.watch(authRepositoryProvider);
+  return authRepo.getCurrentStaffName() ?? 'Staff';
+});
+
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final authRepo = ref.watch(authRepositoryProvider);
     final shiftRepo = ref.watch(shiftRepositoryProvider);
-    final staffName = authRepo.getCurrentStaffName() ?? 'Staff';
+    final staffName = ref.watch(staffNameProvider);
     final shift = shiftRepo.getCurrentShift();
     final storeName = shift?.storeName ?? 'Store';
 
@@ -169,9 +174,20 @@ class HomeScreen extends ConsumerWidget {
               Navigator.pop(context);
               final authRepo = ref.read(authRepositoryProvider);
               final shiftRepo = ref.read(shiftRepositoryProvider);
+
+              // Clear all data first
               await authRepo.logout();
               await shiftRepo.clearBranchSelection();
+
+              // Invalidate providers to force router rebuild
+              ref.invalidate(authRepositoryProvider);
+              ref.invalidate(shiftRepositoryProvider);
+
+              // Wait a bit for state to update
+              await Future.delayed(const Duration(milliseconds: 100));
+
               if (context.mounted) {
+                // Use go to trigger router redirect
                 context.go('/login');
               }
             },
