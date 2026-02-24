@@ -163,7 +163,7 @@ class _WithdrawGoodsScreenState extends ConsumerState<WithdrawGoodsScreen> with 
                               controller: _quantityControllers[product.id],
                               decoration: const InputDecoration(labelText: 'จำนวน', hintText: '0'),
                               keyboardType: TextInputType.number,
-                              enabled: product.stock > 0,
+                              // enabled: product.stock > 0,
                             ),
                           ),
                         ],

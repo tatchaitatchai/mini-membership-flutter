@@ -28,6 +28,7 @@ void main() async {
   final customerRepository = CustomerRepository(apiClient);
   final orderRepository = OrderRepository(apiClient);
   final pointsRepository = PointsRepository(apiClient);
+  await authRepository.initializeSession();
 
   runApp(
     ProviderScope(

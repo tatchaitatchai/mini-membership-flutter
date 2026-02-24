@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../app/theme.dart';
 
 class ResponsiveScaffold extends StatelessWidget {
   final Widget? appBar;
@@ -10,7 +11,7 @@ class ResponsiveScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: backgroundColor ?? Colors.grey.shade50,
+      backgroundColor: backgroundColor ?? POSTheme.backgroundColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -38,10 +39,10 @@ class POSAppBar extends StatelessWidget {
     final isSmall = screenWidth < 600;
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: isSmall ? 12 : 24, vertical: isSmall ? 10 : 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))],
+      padding: EdgeInsets.symmetric(horizontal: isSmall ? 16 : 28, vertical: isSmall ? 12 : 14),
+      decoration: const BoxDecoration(
+        color: Color(0xFFFFFFFF),
+        border: Border(bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1)),
       ),
       child: isSmall ? _buildMobileLayout() : _buildTabletLayout(),
     );
@@ -52,94 +53,137 @@ class POSAppBar extends StatelessWidget {
       children: [
         const Text(
           'POS ME',
-          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: Color(0xFF6366F1)),
+          style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800, color: Color(0xFF4F46E5), letterSpacing: -0.5),
         ),
-        const SizedBox(width: 32),
-        if (storeName != null) ...[_buildInfo(Icons.store, storeName!), const SizedBox(width: 24)],
-        if (staffName != null) ...[_buildInfo(Icons.person, staffName!), const SizedBox(width: 24)],
-        if (shiftStatus != null) ...[_buildInfo(Icons.schedule, shiftStatus!)],
+        const SizedBox(width: 28),
+        if (storeName != null) ...[_buildChip(Icons.store_rounded, storeName!), const SizedBox(width: 8)],
+        if (staffName != null) ...[_buildChip(Icons.person_rounded, staffName!), const SizedBox(width: 8)],
+        if (shiftStatus != null) _buildStatusBadge(shiftStatus!),
         const Spacer(),
         if (onLogout != null) ...[
-          OutlinedButton.icon(
-            onPressed: onLogout,
-            icon: const Icon(Icons.logout),
-            label: const Text('ออกจากระบบ'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.grey.shade700,
-              side: BorderSide(color: Colors.grey.shade300),
-            ),
-          ),
-          const SizedBox(width: 12),
+          _buildTextButton(Icons.logout_rounded, 'ออกจากระบบ', onLogout!, danger: false),
+          const SizedBox(width: 8),
         ],
-        if (onEndWork != null)
-          ElevatedButton.icon(
-            onPressed: onEndWork,
-            icon: const Icon(Icons.exit_to_app),
-            label: const Text('สิ้นสุดงาน'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade50,
-              foregroundColor: Colors.red.shade700,
-              elevation: 0,
-            ),
-          ),
+        if (onEndWork != null) _buildTextButton(Icons.exit_to_app_rounded, 'สิ้นสุดงาน', onEndWork!, danger: true),
       ],
     );
   }
 
   Widget _buildMobileLayout() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: [
-        Row(
-          children: [
-            const Text(
-              'POS ME',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF6366F1)),
+        const Text(
+          'POS ME',
+          style: TextStyle(fontSize: 17, fontWeight: FontWeight.w800, color: Color(0xFF4F46E5), letterSpacing: -0.3),
+        ),
+        const SizedBox(width: 10),
+        if (storeName != null)
+          Expanded(
+            child: Text(
+              storeName!,
+              style: const TextStyle(fontSize: 13, color: Color(0xFF64748B), fontWeight: FontWeight.w500),
+              overflow: TextOverflow.ellipsis,
             ),
-            const Spacer(),
-            if (onLogout != null)
-              IconButton(
-                onPressed: onLogout,
-                icon: Icon(Icons.logout, color: Colors.grey.shade700, size: 20),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-            if (onEndWork != null) ...[
-              const SizedBox(width: 8),
-              IconButton(
-                onPressed: onEndWork,
-                icon: Icon(Icons.exit_to_app, color: Colors.red.shade700, size: 20),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              ),
-            ],
-          ],
-        ),
-        const SizedBox(height: 6),
-        Wrap(
-          spacing: 12,
-          runSpacing: 4,
-          children: [
-            if (storeName != null) _buildInfo(Icons.store, storeName!, small: true),
-            if (staffName != null) _buildInfo(Icons.person, staffName!, small: true),
-            if (shiftStatus != null) _buildInfo(Icons.schedule, shiftStatus!, small: true),
-          ],
-        ),
+          ),
+        const Spacer(),
+        if (onLogout != null) _buildIconBtn(Icons.logout_rounded, onLogout!),
+        if (onEndWork != null) ...[
+          const SizedBox(width: 4),
+          _buildIconBtn(Icons.exit_to_app_rounded, onEndWork!, danger: true),
+        ],
       ],
     );
   }
 
-  Widget _buildInfo(IconData icon, String text, {bool small = false}) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: small ? 14 : 20, color: Colors.grey.shade600),
-        SizedBox(width: small ? 4 : 8),
-        Text(
-          text,
-          style: TextStyle(fontSize: small ? 12 : 14, color: Colors.grey.shade800, fontWeight: FontWeight.w500),
+  Widget _buildChip(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(8),
+        border: const Border.fromBorderSide(BorderSide(color: Color(0xFFE2E8F0))),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: const Color(0xFF94A3B8)),
+          const SizedBox(width: 5),
+          Text(
+            text,
+            style: const TextStyle(fontSize: 13, color: Color(0xFF374151), fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF0FDF4),
+        borderRadius: BorderRadius.circular(8),
+        border: const Border.fromBorderSide(BorderSide(color: Color(0xFFBBF7D0))),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 6,
+            height: 6,
+            decoration: const BoxDecoration(color: Color(0xFF16A34A), shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            text,
+            style: const TextStyle(fontSize: 12, color: Color(0xFF15803D), fontWeight: FontWeight.w600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTextButton(IconData icon, String label, VoidCallback onTap, {required bool danger}) {
+    final color = danger ? const Color(0xFFDC2626) : const Color(0xFF64748B);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          border: Border.all(color: danger ? const Color(0xFFFECACA) : const Color(0xFFE2E8F0)),
+          borderRadius: BorderRadius.circular(8),
+          color: danger ? const Color(0xFFFEF2F2) : const Color(0xFFF8FAFC),
         ),
-      ],
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: color),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(fontSize: 13, color: color, fontWeight: FontWeight.w600),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildIconBtn(IconData icon, VoidCallback onTap, {bool danger = false}) {
+    final color = danger ? const Color(0xFFDC2626) : const Color(0xFF64748B);
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          border: Border.all(color: danger ? const Color(0xFFFECACA) : const Color(0xFFE2E8F0)),
+          borderRadius: BorderRadius.circular(8),
+          color: danger ? const Color(0xFFFEF2F2) : const Color(0xFFF8FAFC),
+        ),
+        child: Icon(icon, size: 17, color: color),
+      ),
     );
   }
 }

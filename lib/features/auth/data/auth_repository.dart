@@ -20,6 +20,39 @@ class AuthRepository {
 
   AuthRepository(this._secureStorage, this._prefs, this._apiClient);
 
+  Future<bool> initializeSession() async {
+    final token = await _apiClient.getSessionToken();
+    if (token == null) {
+      return false;
+    }
+
+    final response = await _apiClient.get<SessionInfo>(
+      '/api/v2/auth/session',
+      requireAuth: true,
+      fromJson: SessionInfo.fromJson,
+    );
+
+    if (response.isSuccess && response.data != null) {
+      final session = response.data!;
+      await _prefs.setInt(_storeIdKey, session.storeId);
+      await _prefs.setString(_storeNameKey, session.storeName);
+      if (session.branchId != null) {
+        await _prefs.setInt(_branchIdKey, session.branchId!);
+      }
+      if (session.staffId != null) {
+        await _prefs.setInt(_staffIdKey, session.staffId!);
+      }
+      if (session.staffName != null) {
+        await _prefs.setString(_staffNameKey, session.staffName!);
+      }
+      return true;
+    }
+
+    await _apiClient.clearSessionToken();
+    await _prefs.clear();
+    return false;
+  }
+
   Future<LoginResponse?> loginStore(String email, String password) async {
     await _apiClient.clearSessionToken();
     await _prefs.remove(_storeEmailKey);
@@ -36,7 +69,6 @@ class AuthRepository {
       body: {'email': email, 'password': password},
       fromJson: LoginResponse.fromJson,
     );
-
 
     if (response.isSuccess && response.data != null) {
       final data = response.data!;

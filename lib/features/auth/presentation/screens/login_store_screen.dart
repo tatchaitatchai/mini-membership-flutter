@@ -64,106 +64,131 @@ class _LoginStoreScreenState extends ConsumerState<LoginStoreScreen> {
     final isSmall = screenWidth < 600;
 
     return Scaffold(
-      body: Center(
-        child: SingleChildScrollView(
-          padding: EdgeInsets.only(
-            left: isSmall ? 20 : 32,
-            right: isSmall ? 20 : 32,
-            top: isSmall ? 20 : 32,
-            bottom: (isSmall ? 20 : 32) + MediaQuery.of(context).viewPadding.bottom,
-          ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 500),
-            child: Form(
-              key: _formKey,
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: EdgeInsets.symmetric(horizontal: isSmall ? 24 : 40, vertical: 32),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Icon(Icons.store, size: isSmall ? 56 : 80, color: const Color(0xFF6366F1)),
-                  SizedBox(height: isSmall ? 16 : 24),
-                  Text(
-                    'POS ME',
-                    textAlign: TextAlign.center,
+                  // Logo mark
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(color: const Color(0xFF4F46E5), borderRadius: BorderRadius.circular(14)),
+                    child: const Icon(Icons.storefront_rounded, size: 28, color: Colors.white),
+                  ),
+                  SizedBox(height: isSmall ? 20 : 28),
+                  const Text(
+                    'ยินดีต้อนรับ',
                     style: TextStyle(
-                      fontSize: isSmall ? 28 : 36,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF6366F1),
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF0F172A),
+                      letterSpacing: -0.5,
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'ระบบขายหน้าร้านสมัยใหม่',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: isSmall ? 14 : 16, color: Colors.grey.shade600),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'เข้าสู่ระบบด้วยอีเมลและรหัสผ่านของร้านค้า',
+                    style: TextStyle(fontSize: 14, color: Color(0xFF64748B), height: 1.5),
                   ),
-                  SizedBox(height: isSmall ? 32 : 48),
-                  TextFormField(
-                    controller: _emailController,
-                    decoration: const InputDecoration(
-                      labelText: 'อีเมลร้านค้า',
-                      hintText: 'กรอกอีเมลร้านค้าของคุณ',
-                      prefixIcon: Icon(Icons.email),
+                  SizedBox(height: isSmall ? 28 : 36),
+                  Form(
+                    key: _formKey,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const Text(
+                          'อีเมลร้านค้า',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF374151)),
+                        ),
+                        const SizedBox(height: 6),
+                        TextFormField(
+                          controller: _emailController,
+                          decoration: const InputDecoration(
+                            hintText: 'example@store.com',
+                            prefixIcon: Icon(Icons.email_outlined, size: 18, color: Color(0xFF94A3B8)),
+                          ),
+                          keyboardType: TextInputType.emailAddress,
+                          validator: Validators.validateEmail,
+                          enabled: !_isLoading,
+                        ),
+                        const SizedBox(height: 18),
+                        const Text(
+                          'รหัสผ่าน',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF374151)),
+                        ),
+                        const SizedBox(height: 6),
+                        TextFormField(
+                          controller: _passwordController,
+                          decoration: InputDecoration(
+                            hintText: '••••••••',
+                            prefixIcon: const Icon(Icons.lock_outline_rounded, size: 18, color: Color(0xFF94A3B8)),
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                                size: 18,
+                                color: const Color(0xFF94A3B8),
+                              ),
+                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            ),
+                          ),
+                          obscureText: _obscurePassword,
+                          validator: (value) {
+                            if (value == null || value.isEmpty) return 'กรุณากรอกรหัสผ่าน';
+                            if (value.length < 6) return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
+                            return null;
+                          },
+                          enabled: !_isLoading,
+                        ),
+                        if (_errorMessage != null) ...[
+                          const SizedBox(height: 14),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF2F2),
+                              borderRadius: BorderRadius.circular(8),
+                              border: const Border.fromBorderSide(BorderSide(color: Color(0xFFFECACA))),
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.error_outline_rounded, color: Color(0xFFDC2626), size: 16),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    _errorMessage!,
+                                    style: const TextStyle(
+                                      color: Color(0xFFDC2626),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 24),
+                        PrimaryButton(
+                          text: 'เข้าสู่ระบบ',
+                          onPressed: _handleLogin,
+                          isLoading: _isLoading,
+                          fullWidth: true,
+                        ),
+                        const SizedBox(height: 12),
+                        SecondaryButton(
+                          text: 'ลงทะเบียนธุรกิจใหม่',
+                          onPressed: () => context.go('/register'),
+                          fullWidth: true,
+                        ),
+                      ],
                     ),
-                    keyboardType: TextInputType.emailAddress,
-                    validator: Validators.validateEmail,
-                    enabled: !_isLoading,
                   ),
-
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: _passwordController,
-                    decoration: InputDecoration(
-                      labelText: 'รหัสผ่าน',
-                      hintText: 'กรอกรหัสผ่าน',
-                      prefixIcon: const Icon(Icons.lock),
-                      suffixIcon: IconButton(
-                        icon: Icon(_obscurePassword ? Icons.visibility_off : Icons.visibility),
-                        onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                      ),
-                    ),
-                    obscureText: _obscurePassword,
-                    validator: (value) {
-                      if (value == null || value.isEmpty) {
-                        return 'กรุณากรอกรหัสผ่าน';
-                      }
-                      if (value.length < 6) {
-                        return 'รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร';
-                      }
-                      return null;
-                    },
-                    enabled: !_isLoading,
-                  ),
-                  const SizedBox(height: 24),
-                  if (_errorMessage != null)
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      margin: const EdgeInsets.only(bottom: 16),
-                      decoration: BoxDecoration(
-                        color: Colors.red.shade50,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red.shade200),
-                      ),
-                      child: Text(
-                        _errorMessage!,
-                        style: TextStyle(color: Colors.red.shade700),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  const SizedBox(height: 24),
-                  PrimaryButton(text: 'ดำเนินการต่อ', onPressed: _handleLogin, isLoading: _isLoading, fullWidth: true),
-                  const SizedBox(height: 16),
-                  SecondaryButton(
-                    text: 'ลงทะเบียนธุรกิจใหม่',
-                    onPressed: () => context.go('/register'),
-                    fullWidth: true,
-                  ),
-                  const SizedBox(height: 24),
-                  // Text(
-                  //   'อีเมลทดสอบ: demo@store.com',
-                  //   textAlign: TextAlign.center,
-                  //   style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                  // ),
                 ],
               ),
             ),

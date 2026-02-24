@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../app/theme.dart';
 import '../../../../common/widgets/responsive_scaffold.dart';
 import '../../../auth/data/auth_repository.dart';
 import '../../../shift/data/shift_repository.dart';
@@ -32,80 +31,122 @@ class HomeScreen extends ConsumerWidget {
           final gridSpacing = isSmall ? 12.0 : 24.0;
           final padding = isSmall ? 16.0 : 24.0;
 
-          return Padding(
+          return SingleChildScrollView(
             padding: EdgeInsets.all(padding),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  'สวัสดีค่ะ $staffName!',
-                  style: TextStyle(fontSize: isSmall ? 20 : 28, fontWeight: FontWeight.bold),
+                // Greeting section
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'สวัสดี, $staffName',
+                            style: TextStyle(
+                              fontSize: isSmall ? 20 : 24,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF0F172A),
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            storeName,
+                            style: const TextStyle(fontSize: 13, color: Color(0xFF94A3B8), fontWeight: FontWeight.w500),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(color: const Color(0xFFEEF2FF), borderRadius: BorderRadius.circular(8)),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 7,
+                            height: 7,
+                            decoration: const BoxDecoration(color: Color(0xFF16A34A), shape: BoxShape.circle),
+                          ),
+                          const SizedBox(width: 6),
+                          const Text(
+                            'กะเปิดอยู่',
+                            style: TextStyle(fontSize: 12, color: Color(0xFF4F46E5), fontWeight: FontWeight.w600),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 8),
-                Text(
-                  'คุณต้องการทำอะไรคะ?',
-                  style: TextStyle(fontSize: isSmall ? 14 : 16, color: Colors.grey.shade600),
-                ),
-                SizedBox(height: isSmall ? 16 : 32),
-                Expanded(
-                  child: GridView.count(
-                    crossAxisCount: crossAxisCount,
-                    crossAxisSpacing: gridSpacing,
-                    mainAxisSpacing: gridSpacing,
-                    childAspectRatio: isSmall ? 1.0 : 1.2,
-                    children: [
-                      _buildActionCard(
-                        context,
-                        icon: Icons.shopping_cart_rounded,
-                        title: 'รับออร์เดอร์',
-                        color: POSTheme.primaryColor,
-                        onTap: () => context.push('/create-order'),
-                      ),
-
-                      _buildActionCard(
-                        context,
-                        icon: Icons.card_giftcard_rounded,
-                        title: 'แลกแต้มสะสม',
-                        color: Colors.amber,
-                        onTap: () => context.push('/redeem-points'),
-                      ),
-                      _buildActionCard(
-                        context,
-                        icon: Icons.inventory_2_rounded,
-                        title: 'รับสินค้า',
-                        color: POSTheme.successColor,
-                        onTap: () => context.push('/receive-goods'),
-                      ),
-                      _buildActionCard(
-                        context,
-                        icon: Icons.output_rounded,
-                        title: 'เบิกสินค้า',
-                        color: POSTheme.orangeColor,
-                        onTap: () => context.push('/withdraw-goods'),
-                      ),
-                      _buildActionCard(
-                        context,
-                        icon: Icons.edit_rounded,
-                        title: 'ปรับสต็อก',
-                        color: POSTheme.purpleColor,
-                        onTap: () => context.push('/adjust-stock'),
-                      ),
-                      _buildActionCard(
-                        context,
-                        icon: Icons.warning_rounded,
-                        title: 'แจ้งเตือนสต็อกต่ำ',
-                        color: POSTheme.dangerColor,
-                        onTap: () => context.push('/low-stock'),
-                      ),
-                      _buildActionCard(
-                        context,
-                        icon: Icons.receipt_long_rounded,
-                        title: 'ออร์เดอร์',
-                        color: POSTheme.infoColor,
-                        onTap: () => context.push('/orders'),
-                      ),
-                    ],
-                  ),
+                SizedBox(height: isSmall ? 20 : 28),
+                GridView.count(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  crossAxisCount: crossAxisCount,
+                  crossAxisSpacing: gridSpacing,
+                  mainAxisSpacing: gridSpacing,
+                  childAspectRatio: isSmall ? 1.1 : 1.2,
+                  children: [
+                    _buildActionCard(
+                      context,
+                      icon: Icons.shopping_cart_rounded,
+                      title: 'รับออร์เดอร์',
+                      iconColor: const Color(0xFF4F46E5),
+                      iconBg: const Color(0xFFEEF2FF),
+                      onTap: () => context.push('/create-order'),
+                    ),
+                    _buildActionCard(
+                      context,
+                      icon: Icons.card_giftcard_rounded,
+                      title: 'แลกแต้มสะสม',
+                      iconColor: const Color(0xFFCA8A04),
+                      iconBg: const Color(0xFFFEFCE8),
+                      onTap: () => context.push('/redeem-points'),
+                    ),
+                    _buildActionCard(
+                      context,
+                      icon: Icons.inventory_2_rounded,
+                      title: 'รับสินค้า',
+                      iconColor: const Color(0xFF16A34A),
+                      iconBg: const Color(0xFFF0FDF4),
+                      onTap: () => context.push('/receive-goods'),
+                    ),
+                    _buildActionCard(
+                      context,
+                      icon: Icons.output_rounded,
+                      title: 'เบิกสินค้า',
+                      iconColor: const Color(0xFFEA580C),
+                      iconBg: const Color(0xFFFFF7ED),
+                      onTap: () => context.push('/withdraw-goods'),
+                    ),
+                    _buildActionCard(
+                      context,
+                      icon: Icons.tune_rounded,
+                      title: 'ปรับสต็อก',
+                      iconColor: const Color(0xFF7C3AED),
+                      iconBg: const Color(0xFFF5F3FF),
+                      onTap: () => context.push('/adjust-stock'),
+                    ),
+                    _buildActionCard(
+                      context,
+                      icon: Icons.warning_amber_rounded,
+                      title: 'สต็อกต่ำ',
+                      iconColor: const Color(0xFFDC2626),
+                      iconBg: const Color(0xFFFEF2F2),
+                      onTap: () => context.push('/low-stock'),
+                    ),
+                    _buildActionCard(
+                      context,
+                      icon: Icons.receipt_long_rounded,
+                      title: 'ออร์เดอร์',
+                      iconColor: const Color(0xFF2563EB),
+                      iconBg: const Color(0xFFEFF6FF),
+                      onTap: () => context.push('/orders'),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -146,52 +187,40 @@ class HomeScreen extends ConsumerWidget {
     BuildContext context, {
     required IconData icon,
     required String title,
-    required Color color,
+    required Color iconColor,
+    required Color iconBg,
     required VoidCallback onTap,
   }) {
-    return Card(
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20),
-        side: BorderSide(color: color.withOpacity(0.15), width: 2),
-      ),
+    return Material(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(14),
         child: Container(
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [color.withOpacity(0.05), color.withOpacity(0.02)],
-            ),
+            borderRadius: BorderRadius.circular(14),
+            border: const Border.fromBorderSide(BorderSide(color: Color(0xFFE2E8F0))),
           ),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.15),
-                    shape: BoxShape.circle,
-                    boxShadow: [BoxShadow(color: color.withOpacity(0.2), blurRadius: 12, offset: const Offset(0, 4))],
-                  ),
-                  child: Icon(icon, size: 28, color: color),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  title,
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.grey.shade800),
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
-            ),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: iconBg, borderRadius: BorderRadius.circular(12)),
+                child: Icon(icon, size: 24, color: iconColor),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                title,
+                style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Color(0xFF1E293B)),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
         ),
       ),
