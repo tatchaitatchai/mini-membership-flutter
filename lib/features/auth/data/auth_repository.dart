@@ -158,6 +158,26 @@ class AuthRepository {
     await _secureStorage.delete(key: _pinVerifiedKey);
   }
 
+  Future<void> deleteAccount() async {
+    // Call API to delete account from staff_accounts table
+    final response = await _apiClient.post('/api/v2/auth/delete-account', requireAuth: true);
+
+    if (!response.isSuccess) {
+      throw Exception(response.error ?? 'Failed to delete account');
+    }
+
+    // Clear all local data after successful deletion
+    await _apiClient.clearSessionToken();
+    await _prefs.remove(_storeEmailKey);
+    await _prefs.remove(_storeNameKey);
+    await _prefs.remove(_storeIdKey);
+    await _prefs.remove(_branchIdKey);
+    await _prefs.remove(_staffNameKey);
+    await _prefs.remove(_staffIdKey);
+    await _prefs.remove(_isManagerKey);
+    await _secureStorage.delete(key: _pinVerifiedKey);
+  }
+
   Future<bool> registerBusiness({required String email, required String password, required String businessName}) async {
     final response = await _apiClient.post<RegisterResponse>(
       '/api/mobile/v1/auth/register',

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../common/widgets/primary_button.dart';
 import '../../../../common/widgets/secondary_button.dart';
 import '../../../../common/utils/validators.dart';
@@ -238,11 +239,16 @@ class _LoginStoreScreenState extends ConsumerState<LoginStoreScreen> {
                                   isLoading: _isLoading,
                                   fullWidth: true,
                                 ),
-                                const SizedBox(height: 12),
-                                SecondaryButton(
-                                  text: 'ลงทะเบียนธุรกิจใหม่',
-                                  onPressed: () => context.go('/register'),
-                                  fullWidth: true,
+                                const SizedBox(height: 16),
+                                Center(
+                                  child: Text(
+                                    'Please create an account on our official website.',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Color(0xFF6366F1),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
                                 ),
                               ],
                             ),

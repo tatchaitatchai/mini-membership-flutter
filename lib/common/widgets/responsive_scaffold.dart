@@ -30,8 +30,17 @@ class POSAppBar extends StatelessWidget {
   final String? shiftStatus;
   final VoidCallback? onEndWork;
   final VoidCallback? onLogout;
+  final VoidCallback? onDeleteAccount;
 
-  const POSAppBar({super.key, this.storeName, this.staffName, this.shiftStatus, this.onEndWork, this.onLogout});
+  const POSAppBar({
+    super.key,
+    this.storeName,
+    this.staffName,
+    this.shiftStatus,
+    this.onEndWork,
+    this.onLogout,
+    this.onDeleteAccount,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -60,11 +69,59 @@ class POSAppBar extends StatelessWidget {
         if (staffName != null) ...[_buildChip(Icons.person_rounded, staffName!), const SizedBox(width: 8)],
         if (shiftStatus != null) _buildStatusBadge(shiftStatus!),
         const Spacer(),
-        if (onLogout != null) ...[
-          _buildTextButton(Icons.logout_rounded, 'ออกจากระบบ', onLogout!, danger: false),
-          const SizedBox(width: 8),
-        ],
-        if (onEndWork != null) _buildTextButton(Icons.exit_to_app_rounded, 'สิ้นสุดงาน', onEndWork!, danger: true),
+        PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert, color: Color(0xFF64748B)),
+          offset: const Offset(0, 45),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          itemBuilder: (context) => [
+            if (onEndWork != null)
+              PopupMenuItem<String>(
+                value: 'end_work',
+                child: const Row(
+                  children: [
+                    Icon(Icons.exit_to_app_rounded, size: 20, color: Color(0xFF64748B)),
+                    SizedBox(width: 12),
+                    Text('สิ้นสุดงาน'),
+                  ],
+                ),
+              ),
+            if (onLogout != null)
+              PopupMenuItem<String>(
+                value: 'logout',
+                child: const Row(
+                  children: [
+                    Icon(Icons.logout_rounded, size: 20, color: Color(0xFF64748B)),
+                    SizedBox(width: 12),
+                    Text('ออกจากระบบ'),
+                  ],
+                ),
+              ),
+            if (onDeleteAccount != null)
+              PopupMenuItem<String>(
+                value: 'delete_account',
+                child: const Row(
+                  children: [
+                    Icon(Icons.delete_forever_rounded, size: 20, color: Color(0xFFDC2626)),
+                    SizedBox(width: 12),
+                    Text('ลบบัญชี', style: TextStyle(color: Color(0xFFDC2626))),
+                  ],
+                ),
+              ),
+          ],
+          onSelected: (value) {
+            switch (value) {
+              case 'end_work':
+                onEndWork?.call();
+                break;
+              case 'logout':
+                onLogout?.call();
+                break;
+              case 'delete_account':
+                onDeleteAccount?.call();
+                break;
+            }
+          },
+        ),
       ],
     );
   }
@@ -86,11 +143,77 @@ class POSAppBar extends StatelessWidget {
             ),
           ),
         const Spacer(),
-        if (onLogout != null) _buildIconBtn(Icons.logout_rounded, onLogout!),
-        if (onEndWork != null) ...[
-          const SizedBox(width: 4),
-          _buildIconBtn(Icons.exit_to_app_rounded, onEndWork!, danger: true),
-        ],
+        PopupMenuButton<String>(
+          icon: const Icon(Icons.more_vert, color: Color(0xFF64748B)),
+          offset: const Offset(0, 45),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          itemBuilder: (context) => [
+            if (staffName != null)
+              PopupMenuItem<String>(
+                enabled: false,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      staffName!,
+                      style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Color(0xFF0F172A)),
+                    ),
+                    if (shiftStatus != null) ...[
+                      const SizedBox(height: 4),
+                      Text(shiftStatus!, style: const TextStyle(fontSize: 12, color: Color(0xFF10B981))),
+                    ],
+                    const Divider(height: 16),
+                  ],
+                ),
+              ),
+            if (onEndWork != null)
+              PopupMenuItem<String>(
+                value: 'end_work',
+                child: const Row(
+                  children: [
+                    Icon(Icons.exit_to_app_rounded, size: 20, color: Color(0xFF64748B)),
+                    SizedBox(width: 12),
+                    Text('สิ้นสุดงาน'),
+                  ],
+                ),
+              ),
+            if (onLogout != null)
+              PopupMenuItem<String>(
+                value: 'logout',
+                child: const Row(
+                  children: [
+                    Icon(Icons.logout_rounded, size: 20, color: Color(0xFF64748B)),
+                    SizedBox(width: 12),
+                    Text('ออกจากระบบ'),
+                  ],
+                ),
+              ),
+            if (onDeleteAccount != null)
+              PopupMenuItem<String>(
+                value: 'delete_account',
+                child: const Row(
+                  children: [
+                    Icon(Icons.delete_forever_rounded, size: 20, color: Color(0xFFDC2626)),
+                    SizedBox(width: 12),
+                    Text('ลบบัญชี', style: TextStyle(color: Color(0xFFDC2626))),
+                  ],
+                ),
+              ),
+          ],
+          onSelected: (value) {
+            switch (value) {
+              case 'end_work':
+                onEndWork?.call();
+                break;
+              case 'logout':
+                onLogout?.call();
+                break;
+              case 'delete_account':
+                onDeleteAccount?.call();
+                break;
+            }
+          },
+        ),
       ],
     );
   }
@@ -139,50 +262,6 @@ class POSAppBar extends StatelessWidget {
             style: const TextStyle(fontSize: 12, color: Color(0xFF15803D), fontWeight: FontWeight.w600),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildTextButton(IconData icon, String label, VoidCallback onTap, {required bool danger}) {
-    final color = danger ? const Color(0xFFDC2626) : const Color(0xFF64748B);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          border: Border.all(color: danger ? const Color(0xFFFECACA) : const Color(0xFFE2E8F0)),
-          borderRadius: BorderRadius.circular(8),
-          color: danger ? const Color(0xFFFEF2F2) : const Color(0xFFF8FAFC),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, size: 14, color: color),
-            const SizedBox(width: 6),
-            Text(
-              label,
-              style: TextStyle(fontSize: 13, color: color, fontWeight: FontWeight.w600),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildIconBtn(IconData icon, VoidCallback onTap, {bool danger = false}) {
-    final color = danger ? const Color(0xFFDC2626) : const Color(0xFF64748B);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          border: Border.all(color: danger ? const Color(0xFFFECACA) : const Color(0xFFE2E8F0)),
-          borderRadius: BorderRadius.circular(8),
-          color: danger ? const Color(0xFFFEF2F2) : const Color(0xFFF8FAFC),
-        ),
-        child: Icon(icon, size: 17, color: color),
       ),
     );
   }
