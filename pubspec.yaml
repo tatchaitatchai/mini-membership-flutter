@@ -54,9 +54,6 @@ dependencies:
   # Image picker
   image_picker: ^1.0.7
   
-  # Permissions
-  permission_handler: ^11.3.0
-  
   # URL launcher
   url_launcher: ^6.2.5
   
