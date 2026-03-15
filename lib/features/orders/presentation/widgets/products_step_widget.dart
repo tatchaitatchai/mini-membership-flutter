@@ -43,6 +43,8 @@ class _ProductsStepWidgetState extends ConsumerState<ProductsStepWidget> {
   List<DetectedPromotion> _detectedPromotions = [];
   bool _isDetecting = false;
   String _lastCartHash = '';
+  String? _selectedCategory;
+  Future<List<Product>>? _productsFuture;
 
   @override
   void initState() {
@@ -403,59 +405,240 @@ class _ProductsStepWidgetState extends ConsumerState<ProductsStepWidget> {
   }
 
   Widget _buildProductList() {
+    _productsFuture ??= ref.read(productRepositoryProvider).getAllProducts();
     return FutureBuilder<List<Product>>(
-      future: ref.read(productRepositoryProvider).getAllProducts(),
+      future: _productsFuture,
       builder: (context, snapshot) {
+        if (snapshot.hasError) {
+          return Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.error_outline, size: 48, color: Colors.red.shade300),
+                const SizedBox(height: 8),
+                Text('โหลดสินค้าไม่สำเร็จ', style: TextStyle(color: Colors.red.shade400)),
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: () => setState(() {
+                    _productsFuture = ref.read(productRepositoryProvider).getAllProducts();
+                  }),
+                  child: const Text('ลองอีกครั้ง'),
+                ),
+              ],
+            ),
+          );
+        }
         if (!snapshot.hasData) {
           return const Center(child: CircularProgressIndicator());
         }
 
-        final products = snapshot.data!;
-        return ListView.builder(
-          padding: const EdgeInsets.all(24),
-          itemCount: products.length,
-          itemBuilder: (context, index) {
-            final product = products[index];
-            final inCart = widget.cart[product.id] ?? 0;
-            final canAdd = product.stock > inCart;
+        final allProducts = snapshot.data!;
+        final categories = allProducts.map((p) => p.category).toSet().toList()..sort();
+        final filteredProducts = _selectedCategory == null
+            ? allProducts
+            : allProducts.where((p) => p.category == _selectedCategory).toList();
 
-            return Card(
-              child: ListTile(
-                leading: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: product.imageUrl != null
-                      ? Image.network(
-                          product.imageUrl!,
-                          width: 56,
-                          height: 56,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => _buildPlaceholderImage(),
-                        )
-                      : _buildPlaceholderImage(),
-                ),
-                title: Text(product.name),
-                subtitle: Text('${Formatters.formatMoney(product.price)} • สต็อก: ${product.stock}'),
-                trailing: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (inCart > 0) ...[
-                      IconButton(
-                        icon: const Icon(Icons.remove),
-                        onPressed: () => widget.onCartChanged(product.id, inCart - 1),
+        return Column(
+          children: [
+            _buildCategoryChips(categories, allProducts),
+            Expanded(
+              child: filteredProducts.isEmpty
+                  ? Center(
+                      child: Text('ไม่พบสินค้าในหมวดนี้', style: TextStyle(color: Colors.grey.shade500, fontSize: 16)),
+                    )
+                  : GridView.builder(
+                      padding: const EdgeInsets.all(12),
+                      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+                        maxCrossAxisExtent: 180,
+                        childAspectRatio: 0.65,
+                        crossAxisSpacing: 10,
+                        mainAxisSpacing: 10,
                       ),
-                      Text('$inCart', style: const TextStyle(fontSize: 18)),
-                    ],
-                    IconButton(
-                      icon: const Icon(Icons.add),
-                      onPressed: canAdd ? () => widget.onCartChanged(product.id, inCart + 1) : null,
+                      itemCount: filteredProducts.length,
+                      itemBuilder: (context, index) => _buildProductCard(filteredProducts[index]),
                     ),
-                  ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildCategoryChips(List<String> categories, List<Product> allProducts) {
+    return Container(
+      height: 52,
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey.shade200)),
+      ),
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: FilterChip(
+              label: Text('ทั้งหมด (${allProducts.length})'),
+              selected: _selectedCategory == null,
+              onSelected: (_) => setState(() => _selectedCategory = null),
+              selectedColor: Theme.of(context).primaryColor.withOpacity(0.15),
+              checkmarkColor: Theme.of(context).primaryColor,
+              labelStyle: TextStyle(
+                color: _selectedCategory == null ? Theme.of(context).primaryColor : Colors.grey.shade700,
+                fontWeight: _selectedCategory == null ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ),
+          ...categories.map((cat) {
+            final count = allProducts.where((p) => p.category == cat).length;
+            final isSelected = _selectedCategory == cat;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: FilterChip(
+                label: Text('$cat ($count)'),
+                selected: isSelected,
+                onSelected: (_) => setState(() => _selectedCategory = isSelected ? null : cat),
+                selectedColor: Theme.of(context).primaryColor.withOpacity(0.15),
+                checkmarkColor: Theme.of(context).primaryColor,
+                labelStyle: TextStyle(
+                  color: isSelected ? Theme.of(context).primaryColor : Colors.grey.shade700,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                 ),
               ),
             );
-          },
-        );
-      },
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductCard(Product product) {
+    final inCart = widget.cart[product.id] ?? 0;
+    final canAdd = product.stock > inCart;
+    final isOutOfStock = product.stock == 0;
+
+    return GestureDetector(
+      onTap: canAdd ? () => widget.onCartChanged(product.id, inCart + 1) : null,
+      child: Card(
+        clipBehavior: Clip.antiAlias,
+        elevation: inCart > 0 ? 3 : 1,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: inCart > 0
+              ? BorderSide(color: Theme.of(context).primaryColor, width: 2)
+              : BorderSide(color: Colors.grey.shade200),
+        ),
+        child: Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: product.imageUrl != null
+                      ? Image.network(
+                          product.imageUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            color: Colors.grey.shade100,
+                            child: Icon(Icons.inventory_2, color: Colors.grey.shade400, size: 48),
+                          ),
+                        )
+                      : Container(
+                          color: Colors.grey.shade100,
+                          child: Icon(Icons.inventory_2, color: Colors.grey.shade400, size: 48),
+                        ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        product.name,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, height: 1.2),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        Formatters.formatMoney(product.price),
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).primaryColor,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'สต็อก: ${product.stock}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: isOutOfStock ? Colors.red.shade400 : Colors.grey.shade500,
+                          fontWeight: isOutOfStock ? FontWeight.w600 : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (inCart > 0)
+              Positioned(
+                top: 6,
+                right: 6,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).primaryColor,
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withOpacity(0.2), blurRadius: 4, offset: const Offset(0, 2)),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      InkWell(
+                        onTap: () => widget.onCartChanged(product.id, inCart - 1),
+                        child: const Padding(
+                          padding: EdgeInsets.all(6),
+                          child: Icon(Icons.remove, size: 16, color: Colors.white),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        child: Text(
+                          '$inCart',
+                          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                        ),
+                      ),
+                      InkWell(
+                        onTap: canAdd ? () => widget.onCartChanged(product.id, inCart + 1) : null,
+                        child: Padding(
+                          padding: const EdgeInsets.all(6),
+                          child: Icon(Icons.add, size: 16, color: canAdd ? Colors.white : Colors.white54),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            if (isOutOfStock)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.black.withOpacity(0.45),
+                  child: const Center(
+                    child: Text(
+                      'สินค้าหมด',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 
