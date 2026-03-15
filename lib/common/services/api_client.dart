@@ -108,6 +108,40 @@ class ApiClient {
     }
   }
 
+  Future<ApiResponse<T>> postMultipart<T>(
+    String path, {
+    required Map<String, String> fields,
+    Map<String, String>? filePaths,
+    bool requireAuth = false,
+    T Function(Map<String, dynamic>)? fromJson,
+  }) async {
+    try {
+      final uri = Uri.parse('$baseUrl$path');
+      final request = http.MultipartRequest('POST', uri);
+
+      if (requireAuth) {
+        final token = await getSessionToken();
+        if (token != null) {
+          request.headers['Authorization'] = 'Bearer $token';
+        }
+      }
+
+      request.fields.addAll(fields);
+
+      if (filePaths != null) {
+        for (final entry in filePaths.entries) {
+          request.files.add(await http.MultipartFile.fromPath(entry.key, entry.value));
+        }
+      }
+
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      return _handleResponse(response, fromJson);
+    } catch (e) {
+      return ApiResponse.error(e.toString());
+    }
+  }
+
   ApiResponse<T> _handleResponse<T>(http.Response response, T Function(Map<String, dynamic>)? fromJson) {
     final body = response.body.isNotEmpty ? jsonDecode(response.body) as Map<String, dynamic> : <String, dynamic>{};
 

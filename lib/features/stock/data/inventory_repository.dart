@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../common/services/api_client.dart';
 import '../domain/inventory.dart';
@@ -12,7 +13,27 @@ class InventoryRepository {
     required int quantity,
     required String reason,
     String? note,
+    String? imagePath,
   }) async {
+    if (imagePath != null && imagePath.isNotEmpty) {
+      // Use multipart endpoint with image
+      final adjustData = {
+        'product_id': productId,
+        'quantity': quantity,
+        'reason': reason,
+        if (note != null && note.isNotEmpty) 'note': note,
+      };
+      final response = await _apiClient.postMultipart<Map<String, dynamic>>(
+        '/api/v2/inventory/adjust-with-image',
+        fields: {'adjust_data': jsonEncode(adjustData)},
+        filePaths: {'image': imagePath},
+        requireAuth: true,
+        fromJson: (json) => json,
+      );
+      return response.isSuccess;
+    }
+
+    // No image — use regular JSON endpoint
     final response = await _apiClient.post<Map<String, dynamic>>(
       '/api/v2/inventory/adjust',
       body: {

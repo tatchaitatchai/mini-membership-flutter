@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../common/widgets/primary_button.dart';
 import '../../../../common/utils/toast_helper.dart';
 import '../../../../common/utils/formatters.dart';
@@ -28,6 +30,8 @@ class _AdjustStockScreenState extends ConsumerState<AdjustStockScreen> with Sing
   final _noteController = TextEditingController();
   bool _isLoading = false;
   List<ProductInfo> _products = [];
+  File? _selectedImage;
+  final _imagePicker = ImagePicker();
 
   // History state
   late Future<List<InventoryMovement>?> _movementsFuture;
@@ -97,6 +101,66 @@ class _AdjustStockScreenState extends ConsumerState<AdjustStockScreen> with Sing
     }
   }
 
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final picked = await _imagePicker.pickImage(source: source, maxWidth: 1024, maxHeight: 1024, imageQuality: 80);
+      if (picked != null) {
+        setState(() => _selectedImage = File(picked.path));
+      }
+    } catch (e) {
+      if (mounted) {
+        ToastHelper.error(context, 'ไม่สามารถเลือกรูปภาพได้');
+      }
+    }
+  }
+
+  void _showImagePickerOptions() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(16))),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text('เลือกรูปภาพ', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const CircleAvatar(child: Icon(Icons.camera_alt)),
+                title: const Text('ถ่ายรูป'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const CircleAvatar(child: Icon(Icons.photo_library)),
+                title: const Text('เลือกจากคลังรูปภาพ'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+              if (_selectedImage != null)
+                ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: Colors.red.shade100,
+                    child: Icon(Icons.delete, color: Colors.red.shade700),
+                  ),
+                  title: Text('ลบรูปภาพ', style: TextStyle(color: Colors.red.shade700)),
+                  onTap: () {
+                    Navigator.pop(ctx);
+                    setState(() => _selectedImage = null);
+                  },
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _handleSubmit() async {
     if (_selectedProduct == null) {
       ToastHelper.warning(context, 'กรุณาเลือกสินค้า');
@@ -122,6 +186,7 @@ class _AdjustStockScreenState extends ConsumerState<AdjustStockScreen> with Sing
             quantity: quantity,
             reason: reason,
             note: note.isNotEmpty ? note : null,
+            imagePath: _selectedImage?.path,
           );
 
       if (!mounted) return;
@@ -134,6 +199,7 @@ class _AdjustStockScreenState extends ConsumerState<AdjustStockScreen> with Sing
           _quantityController.clear();
           _noteController.clear();
           _adjustmentReason = AdjustmentReason.broken;
+          _selectedImage = null;
         });
         // Refresh history and switch to history tab
         _refreshHistory();
@@ -350,6 +416,86 @@ class _AdjustStockScreenState extends ConsumerState<AdjustStockScreen> with Sing
               ),
             ),
           ),
+          const SizedBox(height: 16),
+
+          // Image Upload
+          Card(
+            elevation: 2,
+            shadowColor: Colors.black12,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: Colors.orange.shade50, borderRadius: BorderRadius.circular(8)),
+                        child: Icon(Icons.camera_alt, color: Colors.orange.shade400, size: 20),
+                      ),
+                      const SizedBox(width: 12),
+                      const Expanded(
+                        child: Text(
+                          'รูปภาพหลักฐาน (ไม่บังคับ)',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'แนบรูปสินค้าที่ชำรุด/เสียหาย เพื่อเป็นหลักฐาน',
+                    style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                  ),
+                  const SizedBox(height: 16),
+                  if (_selectedImage != null) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Stack(
+                        children: [
+                          Image.file(_selectedImage!, height: 200, width: double.infinity, fit: BoxFit.cover),
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: GestureDetector(
+                              onTap: () => setState(() => _selectedImage = null),
+                              child: Container(
+                                padding: const EdgeInsets.all(6),
+                                decoration: BoxDecoration(color: Colors.black.withOpacity(0.6), shape: BoxShape.circle),
+                                child: const Icon(Icons.close, color: Colors.white, size: 18),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: _showImagePickerOptions,
+                      icon: const Icon(Icons.swap_horiz),
+                      label: const Text('เปลี่ยนรูป'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 44),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      ),
+                    ),
+                  ] else
+                    OutlinedButton.icon(
+                      onPressed: _showImagePickerOptions,
+                      icon: const Icon(Icons.add_a_photo),
+                      label: const Text('เพิ่มรูปภาพ'),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 56),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        side: BorderSide(color: Colors.grey.shade300),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
           const SizedBox(height: 24),
 
           // Submit Button
@@ -550,6 +696,29 @@ class _AdjustStockScreenState extends ConsumerState<AdjustStockScreen> with Sing
                       _buildDetailRow('หมายเหตุ', movement.note!, Icons.note_outlined),
                     _buildDetailRow('ผู้ดำเนินการ', movement.changedByName ?? 'ไม่ระบุ', Icons.person_outline),
                     _buildDetailRow('เวลา', Formatters.formatDateTime(movement.createdAt), Icons.access_time),
+                    if (movement.imageUrl != null && movement.imageUrl!.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      GestureDetector(
+                        onTap: () => _showFullImage(movement.imageUrl!),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: Image.network(
+                            movement.imageUrl!,
+                            height: 120,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Container(
+                              height: 60,
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade200,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Center(child: Icon(Icons.broken_image, color: Colors.grey)),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ),
@@ -576,6 +745,45 @@ class _AdjustStockScreenState extends ConsumerState<AdjustStockScreen> with Sing
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  void _showFullImage(String imageUrl) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        backgroundColor: Colors.transparent,
+        insetPadding: const EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Align(
+              alignment: Alignment.topRight,
+              child: GestureDetector(
+                onTap: () => Navigator.pop(ctx),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
+                  child: const Icon(Icons.close, size: 20),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.network(
+                imageUrl,
+                fit: BoxFit.contain,
+                errorBuilder: (_, __, ___) => Container(
+                  height: 200,
+                  color: Colors.grey.shade200,
+                  child: const Center(child: Icon(Icons.broken_image, size: 48, color: Colors.grey)),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

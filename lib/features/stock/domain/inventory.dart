@@ -9,6 +9,7 @@ class InventoryMovement {
   final String? reason;
   final String? note;
   final String? changedByName;
+  final String? imageUrl;
   final DateTime createdAt;
 
   const InventoryMovement({
@@ -22,6 +23,7 @@ class InventoryMovement {
     this.reason,
     this.note,
     this.changedByName,
+    this.imageUrl,
     required this.createdAt,
   });
 
@@ -37,6 +39,7 @@ class InventoryMovement {
       reason: json['reason'] as String?,
       note: json['note'] as String?,
       changedByName: json['changed_by_name'] as String?,
+      imageUrl: json['image_url'] as String?,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
@@ -103,16 +106,12 @@ class LowStockResponse {
   final List<LowStockItem> items;
   final int totalCount;
 
-  const LowStockResponse({
-    required this.items,
-    required this.totalCount,
-  });
+  const LowStockResponse({required this.items, required this.totalCount});
 
   factory LowStockResponse.fromJson(Map<String, dynamic> json) {
     return LowStockResponse(
-      items: (json['items'] as List<dynamic>?)
-              ?.map((e) => LowStockItem.fromJson(e as Map<String, dynamic>))
-              .toList() ??
+      items:
+          (json['items'] as List<dynamic>?)?.map((e) => LowStockItem.fromJson(e as Map<String, dynamic>)).toList() ??
           [],
       totalCount: json['total_count'] as int? ?? 0,
     );

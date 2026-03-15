@@ -9,12 +9,35 @@ import '../../data/order_repository.dart';
 import '../../domain/order.dart';
 import '../../../auth/data/auth_repository.dart';
 
-class OrderDetailScreen extends ConsumerWidget {
+class OrderDetailScreen extends ConsumerStatefulWidget {
   final String orderId;
 
   const OrderDetailScreen({super.key, required this.orderId});
 
-  Future<void> _cancelOrder(BuildContext context, WidgetRef ref, Order order) async {
+  @override
+  ConsumerState<OrderDetailScreen> createState() => _OrderDetailScreenState();
+}
+
+class _OrderDetailScreenState extends ConsumerState<OrderDetailScreen> {
+  late Future<Order?> _orderFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOrder();
+  }
+
+  void _loadOrder() {
+    _orderFuture = ref.read(orderRepositoryProvider).getOrderById(widget.orderId);
+  }
+
+  Future<void> _refreshOrder() async {
+    setState(() {
+      _loadOrder();
+    });
+  }
+
+  Future<void> _cancelOrder(Order order) async {
     final pinResult = await showDialog<String>(context: context, builder: (context) => const _StaffPinDialog());
 
     if (pinResult == null) return;
@@ -22,7 +45,7 @@ class OrderDetailScreen extends ConsumerWidget {
     final authRepo = ref.read(authRepositoryProvider);
     final staffName = await authRepo.verifyStaffPin(pinResult);
 
-    if (!context.mounted) return;
+    if (!mounted) return;
 
     if (staffName == null) {
       ToastHelper.error(context, 'รหัส PIN ไม่ถูกต้อง');
@@ -33,20 +56,22 @@ class OrderDetailScreen extends ConsumerWidget {
 
     if (reason == null || reason.isEmpty) return;
 
-    final success = await ref.read(orderRepositoryProvider).cancelOrderApi(int.parse(orderId), reason, pinResult);
+    final success = await ref
+        .read(orderRepositoryProvider)
+        .cancelOrderApi(int.parse(widget.orderId), reason, pinResult);
 
-    if (!context.mounted) return;
+    if (!mounted) return;
 
     if (success) {
       ToastHelper.success(context, 'ยกเลิกออร์เดอร์สำเร็จ');
-      if (context.canPop()) context.pop();
+      _refreshOrder();
     } else {
       ToastHelper.error(context, 'ไม่สามารถยกเลิกออร์เดอร์ได้');
     }
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text('รายละเอียดออร์เดอร์'),
@@ -55,8 +80,8 @@ class OrderDetailScreen extends ConsumerWidget {
           onPressed: () => context.canPop() ? context.pop() : null,
         ),
       ),
-      body: FutureBuilder(
-        future: ref.read(orderRepositoryProvider).getOrderById(orderId),
+      body: FutureBuilder<Order?>(
+        future: _orderFuture,
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
@@ -69,129 +94,136 @@ class OrderDetailScreen extends ConsumerWidget {
           final order = snapshot.data!;
           final screenWidth = MediaQuery.of(context).size.width;
           final isSmall = screenWidth < 600;
-          return SingleChildScrollView(
-            padding: EdgeInsets.only(
-              left: isSmall ? 12 : 24,
-              right: isSmall ? 12 : 24,
-              top: isSmall ? 12 : 24,
-              bottom: (isSmall ? 12 : 24) + MediaQuery.of(context).viewPadding.bottom,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text('ข้อมูลออร์เดอร์', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: order.status == OrderStatus.completed
-                                    ? Colors.green.shade100
-                                    : Colors.red.shade100,
-                                borderRadius: BorderRadius.circular(6),
+          return RefreshIndicator(
+            onRefresh: _refreshOrder,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.only(
+                left: isSmall ? 12 : 24,
+                right: isSmall ? 12 : 24,
+                top: isSmall ? 12 : 24,
+                bottom: (isSmall ? 12 : 24) + MediaQuery.of(context).viewPadding.bottom,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'ข้อมูลออร์เดอร์',
+                                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                               ),
-                              child: Text(
-                                order.status == OrderStatus.completed ? 'สำเร็จ' : 'ยกเลิก',
-                                style: TextStyle(
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                decoration: BoxDecoration(
                                   color: order.status == OrderStatus.completed
-                                      ? Colors.green.shade900
-                                      : Colors.red.shade900,
-                                  fontWeight: FontWeight.bold,
+                                      ? Colors.green.shade100
+                                      : Colors.red.shade100,
+                                  borderRadius: BorderRadius.circular(6),
                                 ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Divider(),
-                        _buildInfoRow('หมายเลขออร์เดอร์', order.id),
-                        _buildInfoRow('ลูกค้า', order.customerName),
-                        _buildInfoRow('วันที่', Formatters.formatDateTime(order.createdAt)),
-                        _buildInfoRow('พนักงาน', order.createdBy),
-                        if (order.status == OrderStatus.cancelled) ...[
-                          const SizedBox(height: 16),
-                          _buildInfoRow('ยกเลิกโดย', order.cancelledBy ?? 'ไม่ระบุ'),
-                          _buildInfoRow(
-                            'ยกเลิกเมื่อ',
-                            order.cancelledAt != null ? Formatters.formatDateTime(order.cancelledAt!) : 'ไม่ระบุ',
-                          ),
-                          _buildInfoRow('เหตุผล', order.cancellationReason ?? 'ไม่ระบุ'),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 24),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text('รายการสินค้า', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                        const Divider(),
-                        ...order.items.map((item) {
-                          return Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Row(
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(item.productName, style: const TextStyle(fontWeight: FontWeight.w600)),
-                                      Text(
-                                        '${item.quantity} x ${Formatters.formatMoney(item.price)}',
-                                        style: TextStyle(color: Colors.grey.shade600),
-                                      ),
-                                    ],
+                                child: Text(
+                                  order.status == OrderStatus.completed ? 'สำเร็จ' : 'ยกเลิก',
+                                  style: TextStyle(
+                                    color: order.status == OrderStatus.completed
+                                        ? Colors.green.shade900
+                                        : Colors.red.shade900,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                Text(
-                                  Formatters.formatMoney(item.total),
-                                  style: const TextStyle(fontWeight: FontWeight.bold),
-                                ),
-                              ],
+                              ),
+                            ],
+                          ),
+                          const Divider(),
+                          _buildInfoRow('หมายเลขออร์เดอร์', order.id),
+                          _buildInfoRow('ลูกค้า', order.customerName),
+                          _buildInfoRow('วันที่', Formatters.formatDateTime(order.createdAt)),
+                          _buildInfoRow('พนักงาน', order.createdBy),
+                          if (order.status == OrderStatus.cancelled) ...[
+                            const SizedBox(height: 16),
+                            _buildInfoRow('ยกเลิกโดย', order.cancelledBy ?? 'ไม่ระบุ'),
+                            _buildInfoRow(
+                              'ยกเลิกเมื่อ',
+                              order.cancelledAt != null ? Formatters.formatDateTime(order.cancelledAt!) : 'ไม่ระบุ',
                             ),
-                          );
-                        }).toList(),
-                      ],
+                            _buildInfoRow('เหตุผล', order.cancellationReason ?? 'ไม่ระบุ'),
+                          ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Column(
-                      children: [
-                        _buildSummaryRow('ยอดรวมย่อย', Formatters.formatMoney(order.subtotal)),
-                        if (order.discount > 0)
-                          _buildSummaryRow('ส่วนลด', '-${Formatters.formatMoney(order.discount)}'),
-                        _buildSummaryRow('ยอดรวม', Formatters.formatMoney(order.total), isTotal: true),
-                        const Divider(),
-                        _buildSummaryRow('เงินที่รับมา', Formatters.formatMoney(order.cashReceived)),
-                        _buildSummaryRow('เงินทอน', Formatters.formatMoney(order.change)),
-                      ],
-                    ),
-                  ),
-                ),
-                if (order.status == OrderStatus.completed) ...[
                   const SizedBox(height: 24),
-                  DangerButton(
-                    text: 'ยกเลิกออร์เดอร์ (ต้องใช้ PIN)',
-                    icon: Icons.cancel,
-                    onPressed: () => _cancelOrder(context, ref, order),
-                    fullWidth: true,
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text('รายการสินค้า', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                          const Divider(),
+                          ...order.items.map((item) {
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(item.productName, style: const TextStyle(fontWeight: FontWeight.w600)),
+                                        Text(
+                                          '${item.quantity} x ${Formatters.formatMoney(item.price)}',
+                                          style: TextStyle(color: Colors.grey.shade600),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Text(
+                                    Formatters.formatMoney(item.total),
+                                    style: const TextStyle(fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                        ],
+                      ),
+                    ),
                   ),
+                  const SizedBox(height: 24),
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        children: [
+                          _buildSummaryRow('ยอดรวมย่อย', Formatters.formatMoney(order.subtotal)),
+                          if (order.discount > 0)
+                            _buildSummaryRow('ส่วนลด', '-${Formatters.formatMoney(order.discount)}'),
+                          _buildSummaryRow('ยอดรวม', Formatters.formatMoney(order.total), isTotal: true),
+                          const Divider(),
+                          _buildSummaryRow('เงินที่รับมา', Formatters.formatMoney(order.cashReceived)),
+                          _buildSummaryRow('เงินทอน', Formatters.formatMoney(order.change)),
+                        ],
+                      ),
+                    ),
+                  ),
+                  if (order.status == OrderStatus.completed) ...[
+                    const SizedBox(height: 24),
+                    DangerButton(
+                      text: 'ยกเลิกออร์เดอร์ (ต้องใช้ PIN)',
+                      icon: Icons.cancel,
+                      onPressed: () => _cancelOrder(order),
+                      fullWidth: true,
+                    ),
+                  ],
                 ],
-              ],
+              ),
             ),
           );
         },
