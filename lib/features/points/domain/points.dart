@@ -2,13 +2,13 @@ class CustomerPointsInfo {
   final int customerId;
   final String customerName;
   final String customerCode;
-  final List<CustomerProductPoints> products;
+  final List<CustomerGroupPointsInfo> groups;
 
   const CustomerPointsInfo({
     required this.customerId,
     required this.customerName,
     required this.customerCode,
-    required this.products,
+    required this.groups,
   });
 
   factory CustomerPointsInfo.fromJson(Map<String, dynamic> json) {
@@ -16,42 +16,36 @@ class CustomerPointsInfo {
       customerId: json['customer_id'] as int,
       customerName: json['customer_name'] as String? ?? '',
       customerCode: json['customer_code'] as String? ?? '',
-      products:
-          (json['products'] as List<dynamic>?)
-              ?.map((e) => CustomerProductPoints.fromJson(e as Map<String, dynamic>))
+      groups:
+          (json['groups'] as List<dynamic>?)
+              ?.map((e) => CustomerGroupPointsInfo.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
     );
   }
 }
 
-class CustomerProductPoints {
-  final int productId;
-  final String productName;
-  final String? categoryName;
-  final String? imagePath;
+class CustomerGroupPointsInfo {
+  final int pointGroupId;
+  final String groupName;
   final int points;
   final int totalPoints;
   final int pointsToRedeem;
   final bool canRedeem;
 
-  const CustomerProductPoints({
-    required this.productId,
-    required this.productName,
-    this.categoryName,
-    this.imagePath,
+  const CustomerGroupPointsInfo({
+    required this.pointGroupId,
+    required this.groupName,
     required this.points,
     required this.totalPoints,
     required this.pointsToRedeem,
     required this.canRedeem,
   });
 
-  factory CustomerProductPoints.fromJson(Map<String, dynamic> json) {
-    return CustomerProductPoints(
-      productId: json['product_id'] as int,
-      productName: json['product_name'] as String? ?? '',
-      categoryName: json['category_name'] as String?,
-      imagePath: json['image_path'] as String?,
+  factory CustomerGroupPointsInfo.fromJson(Map<String, dynamic> json) {
+    return CustomerGroupPointsInfo(
+      pointGroupId: json['point_group_id'] as int,
+      groupName: json['group_name'] as String? ?? '',
       points: json['points'] as int? ?? 0,
       totalPoints: json['total_points'] as int? ?? 0,
       pointsToRedeem: json['points_to_redeem'] as int? ?? 0,
@@ -60,59 +54,78 @@ class CustomerProductPoints {
   }
 }
 
-class RedeemableProduct {
-  final int id;
+class RedeemableGroupProduct {
+  final int productId;
   final String productName;
-  final String? categoryName;
   final String? imagePath;
-  final int pointsToRedeem;
+  final String basePrice;
   final int onStock;
 
-  const RedeemableProduct({
-    required this.id,
+  const RedeemableGroupProduct({
+    required this.productId,
     required this.productName,
-    this.categoryName,
     this.imagePath,
-    required this.pointsToRedeem,
+    required this.basePrice,
     required this.onStock,
   });
 
-  factory RedeemableProduct.fromJson(Map<String, dynamic> json) {
-    return RedeemableProduct(
-      id: json['id'] as int,
+  factory RedeemableGroupProduct.fromJson(Map<String, dynamic> json) {
+    return RedeemableGroupProduct(
+      productId: json['product_id'] as int,
       productName: json['product_name'] as String,
-      categoryName: json['category_name'] as String?,
       imagePath: json['image_path'] as String?,
-      pointsToRedeem: json['points_to_redeem'] as int,
+      basePrice: json['base_price']?.toString() ?? '0',
       onStock: json['on_stock'] as int? ?? 0,
     );
   }
 }
 
-class RedeemableProductsResponse {
-  final List<RedeemableProduct> products;
+class GroupRedeemableProductsResponse {
+  final int pointGroupId;
+  final String groupName;
+  final int pointsToRedeem;
+  final List<RedeemableGroupProduct> products;
 
-  const RedeemableProductsResponse({required this.products});
+  const GroupRedeemableProductsResponse({
+    required this.pointGroupId,
+    this.groupName = '',
+    this.pointsToRedeem = 0,
+    required this.products,
+  });
 
-  factory RedeemableProductsResponse.fromJson(Map<String, dynamic> json) {
-    return RedeemableProductsResponse(
+  factory GroupRedeemableProductsResponse.fromJson(Map<String, dynamic> json) {
+    return GroupRedeemableProductsResponse(
+      pointGroupId: json['point_group_id'] as int? ?? 0,
+      groupName: json['group_name'] as String? ?? '',
+      pointsToRedeem: json['points_to_redeem'] as int? ?? 0,
       products:
           (json['products'] as List<dynamic>?)
-              ?.map((e) => RedeemableProduct.fromJson(e as Map<String, dynamic>))
+              ?.map((e) => RedeemableGroupProduct.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
     );
   }
 }
 
-class RedeemPointsRequest {
+class RedeemGroupPointsRequest {
   final int customerId;
+  final int pointGroupId;
   final int productId;
   final int quantity;
 
-  const RedeemPointsRequest({required this.customerId, required this.productId, required this.quantity});
+  const RedeemGroupPointsRequest({
+    required this.customerId,
+    required this.pointGroupId,
+    required this.productId,
+    required this.quantity,
+  });
 
-  Map<String, dynamic> toJson() => {'customer_id': customerId, 'product_id': productId, 'quantity': quantity};
+  Map<String, dynamic> toJson() => {
+    'customer_id': customerId,
+    'point_group_id': pointGroupId,
+    'product_id': productId,
+    'quantity': quantity,
+  };
 }
 
 class RedeemPointsResponse {

@@ -811,7 +811,7 @@ class _CustomerPointsDialogState extends ConsumerState<_CustomerPointsDialog> {
             ? const Center(child: CircularProgressIndicator())
             : _error != null
             ? Center(child: Text('เกิดข้อผิดพลาด: $_error'))
-            : _pointsInfo == null || _pointsInfo!.products.isEmpty
+            : _pointsInfo == null || _pointsInfo!.groups.isEmpty
             ? const Center(
                 child: Padding(
                   padding: EdgeInsets.all(24),
@@ -820,13 +820,13 @@ class _CustomerPointsDialogState extends ConsumerState<_CustomerPointsDialog> {
               )
             : ListView.builder(
                 shrinkWrap: true,
-                itemCount: _pointsInfo!.products.length,
+                itemCount: _pointsInfo!.groups.length,
                 itemBuilder: (context, index) {
-                  final product = _pointsInfo!.products[index];
-                  final progress = product.pointsToRedeem > 0
-                      ? (product.points / product.pointsToRedeem).clamp(0.0, 1.0)
+                  final group = _pointsInfo!.groups[index];
+                  final progress = group.pointsToRedeem > 0
+                      ? (group.points / group.pointsToRedeem).clamp(0.0, 1.0)
                       : 0.0;
-                  final canRedeem = product.canRedeem;
+                  final canRedeem = group.canRedeem;
 
                   return Card(
                     margin: const EdgeInsets.only(bottom: 8),
@@ -838,7 +838,7 @@ class _CustomerPointsDialogState extends ConsumerState<_CustomerPointsDialog> {
                           Row(
                             children: [
                               Expanded(
-                                child: Text(product.productName, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                child: Text(group.groupName, style: const TextStyle(fontWeight: FontWeight.bold)),
                               ),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -847,7 +847,7 @@ class _CustomerPointsDialogState extends ConsumerState<_CustomerPointsDialog> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
-                                  '${product.points} แต้ม',
+                                  '${group.points} แต้ม',
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     color: canRedeem ? Colors.green.shade700 : Colors.grey.shade600,
@@ -869,8 +869,8 @@ class _CustomerPointsDialogState extends ConsumerState<_CustomerPointsDialog> {
                           const SizedBox(height: 4),
                           Text(
                             canRedeem
-                                ? 'แลกได้! (ใช้ ${product.pointsToRedeem} แต้ม)'
-                                : 'อีก ${product.pointsToRedeem - product.points} แต้มจะแลกได้',
+                                ? 'แลกได้! (ใช้ ${group.pointsToRedeem} แต้ม)'
+                                : 'อีก ${group.pointsToRedeem - group.points} แต้มจะแลกได้',
                             style: TextStyle(
                               fontSize: 12,
                               color: canRedeem ? Colors.green.shade700 : Colors.grey.shade600,

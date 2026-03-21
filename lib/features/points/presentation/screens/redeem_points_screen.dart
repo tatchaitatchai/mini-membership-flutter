@@ -17,10 +17,15 @@ class RedeemPointsScreen extends ConsumerStatefulWidget {
 }
 
 class _RedeemPointsScreenState extends ConsumerState<RedeemPointsScreen> {
+  // step 0 = search customer, 1 = show groups, 2 = show products in group
   int _step = 0;
   Customer? _selectedCustomer;
   CustomerPointsInfo? _customerPoints;
   bool _isLoading = false;
+
+  // step 2: selected group & products
+  CustomerGroupPointsInfo? _selectedGroup;
+  List<RedeemableGroupProduct> _groupProducts = [];
 
   Future<void> _loadCustomerPoints() async {
     if (_selectedCustomer == null || _selectedCustomer!.id == 'guest') return;
@@ -50,17 +55,30 @@ class _RedeemPointsScreenState extends ConsumerState<RedeemPointsScreen> {
     setState(() => _step = 1);
   }
 
-  Future<void> _redeemProduct(CustomerProductPoints product, int quantity) async {
-    if (!product.canRedeem) {
-      ToastHelper.error(context, 'แต้มไม่เพียงพอสำหรับสินค้านี้');
-      return;
-    }
+  Future<void> _onGroupSelected(CustomerGroupPointsInfo group) async {
+    setState(() {
+      _selectedGroup = group;
+      _isLoading = true;
+    });
+    final pointsRepo = ref.read(pointsRepositoryProvider);
+    final resp = await pointsRepo.getGroupRedeemableProducts(group.pointGroupId);
+    if (!mounted) return;
+    setState(() {
+      _groupProducts = resp?.products ?? [];
+      _isLoading = false;
+      _step = 2;
+    });
+  }
+
+  Future<void> _redeemProduct(RedeemableGroupProduct product, int quantity) async {
+    if (_selectedGroup == null) return;
 
     setState(() => _isLoading = true);
     final pointsRepo = ref.read(pointsRepositoryProvider);
-    final result = await pointsRepo.redeemPoints(
-      RedeemPointsRequest(
+    final result = await pointsRepo.redeemGroupPoints(
+      RedeemGroupPointsRequest(
         customerId: int.parse(_selectedCustomer!.id),
+        pointGroupId: _selectedGroup!.pointGroupId,
         productId: product.productId,
         quantity: quantity,
       ),
@@ -70,8 +88,19 @@ class _RedeemPointsScreenState extends ConsumerState<RedeemPointsScreen> {
 
     if (result != null) {
       ToastHelper.success(context, result.message);
-      // Refresh customer points
+      // Refresh customer points and products
       await _loadCustomerPoints();
+      final resp = await pointsRepo.getGroupRedeemableProducts(_selectedGroup!.pointGroupId);
+      if (mounted) {
+        setState(() {
+          _groupProducts = resp?.products ?? [];
+          // Update selected group from refreshed data
+          _selectedGroup = _customerPoints?.groups.cast<CustomerGroupPointsInfo?>().firstWhere(
+            (g) => g?.pointGroupId == _selectedGroup!.pointGroupId,
+            orElse: () => _selectedGroup,
+          );
+        });
+      }
     } else {
       ToastHelper.error(context, 'ไม่สามารถแลกสินค้าได้ กรุณาลองใหม่');
     }
@@ -85,7 +114,15 @@ class _RedeemPointsScreenState extends ConsumerState<RedeemPointsScreen> {
         title: const Text('แลกแต้มสะสม'),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.canPop() ? context.pop() : null,
+          onPressed: () {
+            if (_step == 2) {
+              setState(() => _step = 1);
+            } else if (_step == 1) {
+              setState(() => _step = 0);
+            } else {
+              if (context.canPop()) context.pop();
+            }
+          },
         ),
       ),
       body: _buildStepContent(),
@@ -97,11 +134,20 @@ class _RedeemPointsScreenState extends ConsumerState<RedeemPointsScreen> {
       case 0:
         return _CustomerSearchStep(onCustomerSelected: _onCustomerSelected);
       case 1:
-        return _RedeemProductsStep(
+        return _GroupListStep(
           customer: _selectedCustomer!,
           customerPoints: _customerPoints,
           isLoading: _isLoading,
           onBack: () => setState(() => _step = 0),
+          onGroupSelected: _onGroupSelected,
+        );
+      case 2:
+        return _GroupProductsStep(
+          customer: _selectedCustomer!,
+          group: _selectedGroup!,
+          products: _groupProducts,
+          isLoading: _isLoading,
+          onBack: () => setState(() => _step = 1),
           onRedeem: _redeemProduct,
         );
       default:
@@ -109,6 +155,8 @@ class _RedeemPointsScreenState extends ConsumerState<RedeemPointsScreen> {
     }
   }
 }
+
+// ── Step 0: Customer Search ─────────────────────────────────────────
 
 class _CustomerSearchStep extends ConsumerStatefulWidget {
   final Function(Customer) onCustomerSelected;
@@ -212,24 +260,26 @@ class _CustomerSearchStepState extends ConsumerState<_CustomerSearchStep> {
   }
 }
 
-class _RedeemProductsStep extends StatelessWidget {
+// ── Step 1: Group List ──────────────────────────────────────────────
+
+class _GroupListStep extends StatelessWidget {
   final Customer customer;
   final CustomerPointsInfo? customerPoints;
   final bool isLoading;
   final VoidCallback onBack;
-  final Function(CustomerProductPoints, int) onRedeem;
+  final Function(CustomerGroupPointsInfo) onGroupSelected;
 
-  const _RedeemProductsStep({
+  const _GroupListStep({
     required this.customer,
     required this.customerPoints,
     required this.isLoading,
     required this.onBack,
-    required this.onRedeem,
+    required this.onGroupSelected,
   });
 
   @override
   Widget build(BuildContext context) {
-    final products = customerPoints?.products ?? [];
+    final groups = customerPoints?.groups ?? [];
 
     return Column(
       children: [
@@ -237,7 +287,7 @@ class _RedeemProductsStep extends StatelessWidget {
         Expanded(
           child: isLoading
               ? const Center(child: CircularProgressIndicator())
-              : products.isEmpty
+              : groups.isEmpty
               ? const Center(
                   child: Padding(
                     padding: EdgeInsets.all(24),
@@ -255,10 +305,8 @@ class _RedeemProductsStep extends StatelessWidget {
                     top: 16,
                     bottom: 16 + MediaQuery.of(context).viewPadding.bottom,
                   ),
-                  itemCount: products.length,
-                  itemBuilder: (context, index) {
-                    return _buildProductCard(context, products[index]);
-                  },
+                  itemCount: groups.length,
+                  itemBuilder: (context, index) => _buildGroupCard(context, groups[index]),
                 ),
         ),
         _buildBottomBar(context),
@@ -293,7 +341,7 @@ class _RedeemProductsStep extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
-                '${customerPoints?.products.length ?? 0} สินค้า',
+                '${customerPoints?.groups.length ?? 0} กลุ่ม',
                 style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
               ),
               Text('ที่มีแต้มสะสม', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
@@ -304,7 +352,192 @@ class _RedeemProductsStep extends StatelessWidget {
     );
   }
 
-  Widget _buildProductCard(BuildContext context, CustomerProductPoints product) {
+  Widget _buildGroupCard(BuildContext context, CustomerGroupPointsInfo group) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: () => onGroupSelected(group),
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: group.canRedeem ? Colors.green[50] : Colors.amber[50],
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.stars, color: group.canRedeem ? Colors.green : Colors.amber[700], size: 28),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(group.groupName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        Icon(Icons.stars, color: Colors.amber[700], size: 18),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${group.points}',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.amber[800]),
+                        ),
+                        Text(
+                          ' / ${group.pointsToRedeem} แต้ม',
+                          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    LinearProgressIndicator(
+                      value: group.pointsToRedeem > 0 ? (group.points / group.pointsToRedeem).clamp(0.0, 1.0) : 0,
+                      backgroundColor: Colors.grey[300],
+                      valueColor: AlwaysStoppedAnimation<Color>(group.canRedeem ? Colors.green : Colors.amber),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (group.canRedeem)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(color: Colors.green, borderRadius: BorderRadius.circular(12)),
+                  child: const Text(
+                    'แลกได้',
+                    style: TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                )
+              else
+                const Icon(Icons.chevron_right, color: Colors.grey),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomBar(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, -2))],
+      ),
+      child: SecondaryButton(text: 'เปลี่ยนลูกค้า', onPressed: onBack),
+    );
+  }
+}
+
+// ── Step 2: Products in Group ───────────────────────────────────────
+
+class _GroupProductsStep extends StatelessWidget {
+  final Customer customer;
+  final CustomerGroupPointsInfo group;
+  final List<RedeemableGroupProduct> products;
+  final bool isLoading;
+  final VoidCallback onBack;
+  final Function(RedeemableGroupProduct, int) onRedeem;
+
+  const _GroupProductsStep({
+    required this.customer,
+    required this.group,
+    required this.products,
+    required this.isLoading,
+    required this.onBack,
+    required this.onRedeem,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _buildGroupHeader(context),
+        Expanded(
+          child: isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : products.isEmpty
+              ? const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: Text(
+                      'ไม่มีสินค้าในกลุ่มนี้',
+                      style: TextStyle(fontSize: 16, color: Colors.grey),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                )
+              : ListView.builder(
+                  padding: EdgeInsets.only(
+                    left: 16,
+                    right: 16,
+                    top: 16,
+                    bottom: 16 + MediaQuery.of(context).viewPadding.bottom,
+                  ),
+                  itemCount: products.length,
+                  itemBuilder: (context, index) => _buildProductCard(context, products[index]),
+                ),
+        ),
+        _buildBottomBar(context),
+      ],
+    );
+  }
+
+  Widget _buildGroupHeader(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.primaryContainer,
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 4, offset: const Offset(0, 2))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              CircleAvatar(
+                backgroundColor: Theme.of(context).colorScheme.primary,
+                child: const Icon(Icons.person, color: Colors.white),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(customer.fullName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text('กลุ่ม: ${group.groupName}', style: TextStyle(fontSize: 14, color: Colors.grey[600])),
+                  ],
+                ),
+              ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.stars, color: Colors.amber[700], size: 20),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${group.points}',
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.amber[800]),
+                      ),
+                    ],
+                  ),
+                  Text('แลกใช้ ${group.pointsToRedeem} แต้ม', style: TextStyle(fontSize: 11, color: Colors.grey[600])),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildProductCard(BuildContext context, RedeemableGroupProduct product) {
+    final canRedeem = group.canRedeem && product.onStock > 0;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: Padding(
@@ -332,38 +565,29 @@ class _RedeemProductsStep extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(product.productName, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                  if (product.categoryName != null)
-                    Text(product.categoryName!, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(Icons.stars, color: Colors.amber[700], size: 20),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${product.points}',
-                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.amber[800]),
-                      ),
-                      Text(
-                        ' / ${product.pointsToRedeem} แต้ม',
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                      ),
-                    ],
+                  const SizedBox(height: 4),
+                  Text(
+                    '฿${double.tryParse(product.basePrice)?.toStringAsFixed(2) ?? product.basePrice}',
+                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 4),
-                  LinearProgressIndicator(
-                    value: product.pointsToRedeem > 0 ? (product.points / product.pointsToRedeem).clamp(0.0, 1.0) : 0,
-                    backgroundColor: Colors.grey[300],
-                    valueColor: AlwaysStoppedAnimation<Color>(product.canRedeem ? Colors.green : Colors.amber),
+                  Text(
+                    product.onStock > 0 ? 'คงเหลือ ${product.onStock} ชิ้น' : 'สินค้าหมด',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: product.onStock > 0 ? Colors.green[700] : Colors.red,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 12),
             ElevatedButton(
-              onPressed: product.canRedeem ? () => _showRedeemDialog(context, product) : null,
+              onPressed: canRedeem ? () => _showRedeemDialog(context, product) : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: product.canRedeem ? Colors.green : Colors.grey[300],
-                foregroundColor: product.canRedeem ? Colors.white : Colors.grey[600],
+                backgroundColor: canRedeem ? Colors.green : Colors.grey[300],
+                foregroundColor: canRedeem ? Colors.white : Colors.grey[600],
               ),
               child: const Text('แลก'),
             ),
@@ -373,22 +597,25 @@ class _RedeemProductsStep extends StatelessWidget {
     );
   }
 
-  void _showRedeemDialog(BuildContext context, CustomerProductPoints product) {
+  void _showRedeemDialog(BuildContext context, RedeemableGroupProduct product) {
     int quantity = 1;
-    final maxQuantity = product.pointsToRedeem > 0 ? (product.points / product.pointsToRedeem).floor() : 0;
+    // Max quantity limited by points and stock
+    final maxByPoints = group.pointsToRedeem > 0 ? (group.points / group.pointsToRedeem).floor() : 0;
+    final maxQuantity = maxByPoints < product.onStock ? maxByPoints : product.onStock;
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) {
-          final totalPointsUsed = product.pointsToRedeem * quantity;
+          final totalPointsUsed = group.pointsToRedeem * quantity;
           return AlertDialog(
             title: Text('แลก ${product.productName}'),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('คุณมี ${product.points} แต้ม'),
-                Text('ใช้ ${product.pointsToRedeem} แต้ม ต่อ 1 ชิ้น'),
+                Text('คุณมี ${group.points} แต้ม (กลุ่ม ${group.groupName})'),
+                Text('ใช้ ${group.pointsToRedeem} แต้ม ต่อ 1 ชิ้น'),
+                Text('คงเหลือ ${product.onStock} ชิ้น', style: TextStyle(color: Colors.grey[600], fontSize: 13)),
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -449,7 +676,7 @@ class _RedeemProductsStep extends StatelessWidget {
         color: Colors.white,
         boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4, offset: const Offset(0, -2))],
       ),
-      child: SecondaryButton(text: 'เปลี่ยนลูกค้า', onPressed: onBack),
+      child: SecondaryButton(text: 'กลับหน้ากลุ่ม', onPressed: onBack),
     );
   }
 }

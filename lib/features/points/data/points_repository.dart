@@ -20,20 +20,20 @@ class PointsRepository {
     return null;
   }
 
-  Future<List<RedeemableProduct>> getRedeemableProducts() async {
-    final response = await _apiClient.get<RedeemableProductsResponse>(
-      '/api/v2/points/redeemable-products',
+  Future<GroupRedeemableProductsResponse?> getGroupRedeemableProducts(int groupId) async {
+    final response = await _apiClient.get<GroupRedeemableProductsResponse>(
+      '/api/v2/points/groups/$groupId/products',
       requireAuth: true,
-      fromJson: RedeemableProductsResponse.fromJson,
+      fromJson: GroupRedeemableProductsResponse.fromJson,
     );
 
     if (response.isSuccess && response.data != null) {
-      return response.data!.products;
+      return response.data;
     }
-    return [];
+    return null;
   }
 
-  Future<RedeemPointsResponse?> redeemPoints(RedeemPointsRequest request) async {
+  Future<RedeemPointsResponse?> redeemGroupPoints(RedeemGroupPointsRequest request) async {
     final response = await _apiClient.post<RedeemPointsResponse>(
       '/api/v2/points/redeem',
       body: request.toJson(),
