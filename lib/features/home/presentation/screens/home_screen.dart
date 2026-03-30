@@ -106,6 +106,14 @@ class HomeScreen extends ConsumerWidget {
                     ),
                     _buildActionCard(
                       context,
+                      icon: Icons.person_add_alt_rounded,
+                      title: 'ลงทะเบียนลูกค้า',
+                      iconColor: const Color(0xFF06B6D4),
+                      iconBg: const Color(0xFFECFEFF),
+                      onTap: () => context.push('/register-customer'),
+                    ),
+                    _buildActionCard(
+                      context,
                       icon: Icons.card_giftcard_rounded,
                       title: 'แลกแต้มสะสม',
                       iconColor: const Color(0xFFCA8A04),

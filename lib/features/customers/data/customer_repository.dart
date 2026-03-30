@@ -26,6 +26,20 @@ class CustomerRepository {
   Future<Customer?> getById(String id) async {
     return null;
   }
+
+  Future<String?> createCustomer({required String fullName, required String phone, String? email}) async {
+    final response = await _apiClient.post<Map<String, dynamic>>(
+      '/api/v2/customer-management',
+      requireAuth: true,
+      body: {'full_name': fullName, 'phone': phone, if (email != null && email.isNotEmpty) 'email': email},
+      fromJson: (json) => json,
+    );
+
+    if (response.isSuccess && response.data != null) {
+      return response.data!['id']?.toString();
+    }
+    return null;
+  }
 }
 
 final customerRepositoryProvider = Provider<CustomerRepository>((ref) {

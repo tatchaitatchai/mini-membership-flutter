@@ -16,6 +16,7 @@ import '../features/stock/presentation/screens/withdraw_goods_screen.dart';
 import '../features/stock/presentation/screens/adjust_stock_screen.dart';
 import '../features/stock/presentation/screens/low_stock_screen.dart';
 import '../features/points/presentation/screens/redeem_points_screen.dart';
+import '../features/customers/presentation/screens/register_customer_screen.dart';
 import '../features/auth/data/auth_repository.dart';
 import '../features/shift/data/shift_repository.dart';
 
@@ -88,6 +89,7 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/pin', builder: (context, state) => const StaffPinScreen()),
       GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
       GoRoute(path: '/create-order', builder: (context, state) => const CreateOrderScreen()),
+      GoRoute(path: '/register-customer', builder: (context, state) => const RegisterCustomerScreen()),
       GoRoute(path: '/orders', builder: (context, state) => const OrdersScreen()),
       GoRoute(
         path: '/orders/:id',
