@@ -20,7 +20,7 @@ class OrderRepository {
     required double totalPrice,
     required List<PaymentRequest> payments,
     required double changeAmount,
-    int? promotionId,
+    List<PromotionApplied> promotions = const [],
     List<File>? slipImages,
   }) async {
     if (slipImages != null && slipImages.isNotEmpty) {
@@ -32,7 +32,7 @@ class OrderRepository {
         totalPrice: totalPrice,
         payments: payments,
         changeAmount: changeAmount,
-        promotionId: promotionId,
+        promotions: promotions,
         slipImages: slipImages,
       );
     }
@@ -45,7 +45,7 @@ class OrderRepository {
       totalPrice: totalPrice,
       payments: payments,
       changeAmount: changeAmount,
-      promotionId: promotionId,
+      promotions: promotions,
     );
 
     final response = await _apiClient.post<CreateOrderResponse>(
@@ -69,7 +69,7 @@ class OrderRepository {
     required double totalPrice,
     required List<PaymentRequest> payments,
     required double changeAmount,
-    int? promotionId,
+    List<PromotionApplied> promotions = const [],
     required List<File> slipImages,
   }) async {
     try {
@@ -93,7 +93,7 @@ class OrderRepository {
         'total_price': totalPrice,
         'payments': payments.map((p) => p.toJson()).toList(),
         'change_amount': changeAmount,
-        if (promotionId != null) 'promotion_id': promotionId,
+        'promotions': promotions.map((p) => p.toJson()).toList(),
       };
       request.fields['order_data'] = jsonEncode(orderData);
 

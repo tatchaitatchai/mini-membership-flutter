@@ -92,6 +92,15 @@ class PaymentRequest {
   }
 }
 
+class PromotionApplied {
+  final int id;
+  final double discount;
+
+  const PromotionApplied({required this.id, required this.discount});
+
+  Map<String, dynamic> toJson() => {'id': id, 'discount': discount};
+}
+
 class CreateOrderRequest {
   final int? customerId;
   final List<OrderItemRequest> items;
@@ -100,7 +109,7 @@ class CreateOrderRequest {
   final double totalPrice;
   final List<PaymentRequest> payments;
   final double changeAmount;
-  final int? promotionId;
+  final List<PromotionApplied> promotions;
 
   CreateOrderRequest({
     this.customerId,
@@ -110,7 +119,7 @@ class CreateOrderRequest {
     required this.totalPrice,
     required this.payments,
     required this.changeAmount,
-    this.promotionId,
+    this.promotions = const [],
   });
 
   Map<String, dynamic> toJson() {
@@ -122,7 +131,7 @@ class CreateOrderRequest {
       'total_price': totalPrice,
       'payments': payments.map((e) => e.toJson()).toList(),
       'change_amount': changeAmount,
-      'promotion_id': promotionId,
+      'promotions': promotions.map((e) => e.toJson()).toList(),
     };
   }
 }

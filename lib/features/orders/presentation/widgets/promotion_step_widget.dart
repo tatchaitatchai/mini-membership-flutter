@@ -8,21 +8,21 @@ import '../../../promotions/data/promotion_repository.dart';
 import '../../../products/data/product_repository.dart';
 
 class PromotionStepWidget extends ConsumerStatefulWidget {
-  final Promotion? selectedPromotion;
+  final List<Promotion> selectedPromotions;
   final double subtotal;
   final Map<String, int> cart;
   final VoidCallback onBack;
   final VoidCallback onNext;
-  final Function(Promotion?) onPromotionSelected;
+  final Function(List<Promotion>) onPromotionsChanged;
 
   const PromotionStepWidget({
     super.key,
-    required this.selectedPromotion,
+    required this.selectedPromotions,
     required this.subtotal,
     required this.cart,
     required this.onBack,
     required this.onNext,
-    required this.onPromotionSelected,
+    required this.onPromotionsChanged,
   });
 
   @override
@@ -99,11 +99,46 @@ class _PromotionStepWidgetState extends ConsumerState<PromotionStepWidget> {
               ],
             ),
           ),
+          // Total discount summary
+          if (widget.selectedPromotions.isNotEmpty)
+            Container(
+              margin: const EdgeInsets.only(top: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.green.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green.shade200),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'ส่วนลดรวม (${widget.selectedPromotions.length} โปรโมชั่น)',
+                    style: TextStyle(color: Colors.green.shade700, fontWeight: FontWeight.w600),
+                  ),
+                  Text(
+                    '-${Formatters.formatMoney(widget.selectedPromotions.fold(0.0, (s, p) => s + _calculateDiscountPreview(p)))}',
+                    style: TextStyle(color: Colors.green.shade700, fontWeight: FontWeight.bold, fontSize: 16),
+                  ),
+                ],
+              ),
+            ),
           const SizedBox(height: 16),
           Expanded(child: _buildPromotionList()),
         ],
       ),
     );
+  }
+
+  void _togglePromotion(Promotion promo) {
+    final current = List<Promotion>.from(widget.selectedPromotions);
+    final idx = current.indexWhere((p) => p.id == promo.id);
+    if (idx >= 0) {
+      current.removeAt(idx);
+    } else {
+      current.add(promo);
+    }
+    widget.onPromotionsChanged(current);
   }
 
   Widget _buildPromotionList() {
@@ -125,22 +160,11 @@ class _PromotionStepWidgetState extends ConsumerState<PromotionStepWidget> {
     }
 
     final promotions = _promotions ?? [];
-
-    // Separate bill-level and product-level promotions
     final billLevelPromos = promotions.where((p) => p.isBillLevel).toList();
     final productPromos = promotions.where((p) => !p.isBillLevel).toList();
 
     return ListView(
       children: [
-        // No promotion option
-        _buildPromotionCard(
-          title: 'ไม่ใช้โปรโมชั่น',
-          subtitle: 'ชำระเต็มจำนวน',
-          isSelected: widget.selectedPromotion == null,
-          onTap: () => widget.onPromotionSelected(null),
-        ),
-
-        // Bill-level promotions section
         if (billLevelPromos.isNotEmpty) ...[
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
@@ -151,17 +175,12 @@ class _PromotionStepWidgetState extends ConsumerState<PromotionStepWidget> {
           ),
           ...billLevelPromos.map(
             (promo) => _buildPromotionCard(
-              title: promo.name,
-              subtitle: promo.description,
-              badge: promo.typeLabel,
-              discountPreview: _calculateDiscountPreview(promo),
-              isSelected: widget.selectedPromotion?.id == promo.id,
-              onTap: () => widget.onPromotionSelected(promo),
+              promo: promo,
+              isSelected: widget.selectedPromotions.any((p) => p.id == promo.id),
+              onTap: () => _togglePromotion(promo),
             ),
           ),
         ],
-
-        // Product-level promotions section
         if (productPromos.isNotEmpty) ...[
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
@@ -172,16 +191,19 @@ class _PromotionStepWidgetState extends ConsumerState<PromotionStepWidget> {
           ),
           ...productPromos.map(
             (promo) => _buildPromotionCard(
-              title: promo.name,
-              subtitle: promo.description,
-              badge: promo.typeLabel,
-              products: promo.products.map((p) => p.productName).toList(),
-              discountPreview: _calculateDiscountPreview(promo),
-              isSelected: widget.selectedPromotion?.id == promo.id,
-              onTap: () => widget.onPromotionSelected(promo),
+              promo: promo,
+              isSelected: widget.selectedPromotions.any((p) => p.id == promo.id),
+              onTap: () => _togglePromotion(promo),
             ),
           ),
         ],
+        if (promotions.isEmpty)
+          const Center(
+            child: Padding(
+              padding: EdgeInsets.all(32),
+              child: Text('ไม่มีโปรโมชั่นที่ใช้ได้', style: TextStyle(color: Colors.grey)),
+            ),
+          ),
       ],
     );
   }
@@ -236,14 +258,13 @@ class _PromotionStepWidgetState extends ConsumerState<PromotionStepWidget> {
   }
 
   Widget _buildPromotionCard({
-    required String title,
-    required String subtitle,
-    String? badge,
-    List<String>? products,
-    double? discountPreview,
+    required Promotion promo,
     required bool isSelected,
     required VoidCallback onTap,
   }) {
+    final discountPreview = _calculateDiscountPreview(promo);
+    final products = promo.products.map((p) => p.productName).toList();
+
     return Card(
       color: isSelected ? Colors.blue.shade50 : null,
       margin: const EdgeInsets.only(bottom: 8),
@@ -254,6 +275,12 @@ class _PromotionStepWidgetState extends ConsumerState<PromotionStepWidget> {
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
+              Checkbox(
+                value: isSelected,
+                onChanged: (_) => onTap(),
+                activeColor: Colors.blue,
+              ),
+              const SizedBox(width: 8),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -261,60 +288,40 @@ class _PromotionStepWidgetState extends ConsumerState<PromotionStepWidget> {
                     Row(
                       children: [
                         Expanded(
-                          child: Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                          child: Text(promo.name, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                         ),
-                        if (badge != null)
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.orange.shade100,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(badge, style: TextStyle(fontSize: 12, color: Colors.orange.shade800)),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.orange.shade100,
+                            borderRadius: BorderRadius.circular(4),
                           ),
+                          child: Text(promo.typeLabel, style: TextStyle(fontSize: 12, color: Colors.orange.shade800)),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 4),
-                    Text(subtitle, style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
-                    if (products != null && products.isNotEmpty) ...[
+                    Text(promo.description, style: TextStyle(fontSize: 14, color: Colors.grey.shade600)),
+                    if (products.isNotEmpty) ...[
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 4,
                         runSpacing: 4,
-                        children: products
-                            .map(
-                              (p) => Chip(
-                                label: Text(p, style: const TextStyle(fontSize: 11)),
-                                padding: EdgeInsets.zero,
-                                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                              ),
-                            )
-                            .toList(),
+                        children: products.map((p) => Chip(
+                          label: Text(p, style: const TextStyle(fontSize: 11)),
+                          padding: EdgeInsets.zero,
+                          materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        )).toList(),
                       ),
                     ],
                   ],
                 ),
               ),
-              const SizedBox(width: 16),
-              if (discountPreview != null && discountPreview > 0)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '-${Formatters.formatMoney(discountPreview)}',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.green.shade700),
-                    ),
-                    if (isSelected)
-                      Text(
-                        'จ่าย ${Formatters.formatMoney(widget.subtotal - discountPreview)}',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-                      ),
-                  ],
-                ),
-              if (isSelected)
-                const Padding(
-                  padding: EdgeInsets.only(left: 8),
-                  child: Icon(Icons.check_circle, color: Colors.blue, size: 28),
+              const SizedBox(width: 8),
+              if (discountPreview > 0)
+                Text(
+                  '-${Formatters.formatMoney(discountPreview)}',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.green.shade700),
                 ),
             ],
           ),

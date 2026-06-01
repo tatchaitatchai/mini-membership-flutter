@@ -27,7 +27,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   int _step = 0;
   Customer? _selectedCustomer;
   Map<String, int> _cart = {};
-  Promotion? _selectedPromotion;
+  List<Promotion> _selectedPromotions = [];
   bool _isLoading = false;
 
   double get _subtotal {
@@ -42,8 +42,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
   }
 
   double get _discount {
-    if (_selectedPromotion == null) return 0;
-    return _calculatePromotionDiscount(_selectedPromotion!, _subtotal);
+    return _selectedPromotions.fold(0.0, (sum, p) => sum + _calculatePromotionDiscount(p, _subtotal));
   }
 
   double _calculatePromotionDiscount(Promotion promo, double subtotal) {
@@ -151,7 +150,10 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
       totalPrice: _total,
       payments: payments,
       changeAmount: change,
-      promotionId: _selectedPromotion?.id,
+      promotions: _selectedPromotions.map((p) => PromotionApplied(
+        id: p.id,
+        discount: _calculatePromotionDiscount(p, _subtotal),
+      )).toList(),
       slipImages: slipImages,
     );
 
@@ -174,7 +176,7 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         cashReceived: cashAmount,
         transferAmount: transferAmount,
         change: change,
-        promotionId: _selectedPromotion?.id.toString(),
+        promotionId: _selectedPromotions.isNotEmpty ? _selectedPromotions.first.id.toString() : null,
         attachedSlipUrl: slipImages != null && slipImages.isNotEmpty ? slipImages.first.path : null,
         status: OrderStatus.completed,
         createdAt: apiResponse.createdAt,
@@ -274,12 +276,12 @@ class _CreateOrderScreenState extends ConsumerState<CreateOrderScreen> {
         );
       case 2:
         return PromotionStepWidget(
-          selectedPromotion: _selectedPromotion,
+          selectedPromotions: _selectedPromotions,
           subtotal: _subtotal,
           cart: _cart,
           onBack: () => setState(() => _step = 1),
           onNext: () => setState(() => _step = 3),
-          onPromotionSelected: (promotion) => setState(() => _selectedPromotion = promotion),
+          onPromotionsChanged: (promotions) => setState(() => _selectedPromotions = promotions),
         );
       case 3:
         return PaymentStepWidget(
