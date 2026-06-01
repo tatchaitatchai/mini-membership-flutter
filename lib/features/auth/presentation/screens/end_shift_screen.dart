@@ -199,7 +199,18 @@ class _EndShiftScreenState extends ConsumerState<EndShiftScreen> {
                     const SizedBox(height: 16),
                     _buildSummaryRow('ยอดขายรวม', Formatters.formatMoney(_summary!.totalSales)),
                     _buildSummaryRow('จำนวนออร์เดอร์', '${_summary!.orderCount}'),
-                    _buildSummaryRow('เงินสดที่คาดไว้', Formatters.formatMoney(_summary!.expectedCash)),
+                    const Divider(height: 24),
+                    _buildSummaryRow('ยอดเงินสด', Formatters.formatMoney(_summary!.expectedCash - _summary!.startingCash)),
+                    if (_summary!.transferSales > 0)
+                      _buildHighlightRow(
+                        'ยอดเงินโอน',
+                        Formatters.formatMoney(_summary!.transferSales),
+                        color: Colors.blue.shade700,
+                        icon: Icons.account_balance_outlined,
+                      ),
+                    const Divider(height: 24),
+                    _buildSummaryRow('เงินเปิดกะ', Formatters.formatMoney(_summary!.startingCash)),
+                    _buildSummaryRow('เงินสดที่คาดไว้ในลิ้นชัก', Formatters.formatMoney(_summary!.expectedCash)),
                     if (_summary!.cancelledCount > 0) ...[const Divider(height: 24), _buildCancelledSection()],
                   ],
                 ),
@@ -307,6 +318,30 @@ class _EndShiftScreenState extends ConsumerState<EndShiftScreen> {
         children: [
           Text(label, style: TextStyle(fontSize: 16, color: Colors.grey.shade700)),
           Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHighlightRow(String label, String value, {required Color color, IconData? icon}) {
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: color.withOpacity(0.3)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              if (icon != null) ...[Icon(icon, size: 18, color: color), const SizedBox(width: 8)],
+              Text(label, style: TextStyle(fontSize: 16, color: color, fontWeight: FontWeight.w600)),
+            ],
+          ),
+          Text(value, style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
         ],
       ),
     );
