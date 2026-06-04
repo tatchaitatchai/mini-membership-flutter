@@ -131,7 +131,7 @@ class _EndShiftScreenState extends ConsumerState<EndShiftScreen> {
     final products = await productRepo.getAllProducts();
     final stockCounts = <StockCountInput>[];
     for (var product in products) {
-      final actualStock = int.tryParse(_stockControllers[product.id]?.text ?? '${product.stock}') ?? product.stock;
+      final actualStock = int.tryParse(_stockControllers[product.id]?.text ?? '0') ?? 0;
       stockCounts.add(StockCountInput(productId: int.parse(product.id), actualStock: actualStock));
     }
 
@@ -253,7 +253,7 @@ class _EndShiftScreenState extends ConsumerState<EndShiftScreen> {
                           children: products.map((product) {
                             _stockControllers.putIfAbsent(
                               product.id,
-                              () => TextEditingController(text: '${product.stock}'),
+                              () => TextEditingController(text: '0'),
                             );
 
                             return Padding(
@@ -265,7 +265,7 @@ class _EndShiftScreenState extends ConsumerState<EndShiftScreen> {
                                   Expanded(
                                     child: TextField(
                                       controller: _stockControllers[product.id],
-                                      decoration: InputDecoration(labelText: 'จำนวน', hintText: '${product.stock}'),
+                                      decoration: const InputDecoration(labelText: 'จำนวน'),
                                       keyboardType: TextInputType.number,
                                     ),
                                   ),

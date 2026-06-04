@@ -239,17 +239,6 @@ class _LoginStoreScreenState extends ConsumerState<LoginStoreScreen> {
                                   isLoading: _isLoading,
                                   fullWidth: true,
                                 ),
-                                const SizedBox(height: 16),
-                                Center(
-                                  child: Text(
-                                    'Please create an account on our official website.',
-                                    style: TextStyle(
-                                      fontSize: 13,
-                                      color: Color(0xFF6366F1),
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ),
                               ],
                             ),
                           ),

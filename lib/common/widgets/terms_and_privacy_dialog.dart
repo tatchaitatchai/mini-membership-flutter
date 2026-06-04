@@ -500,11 +500,6 @@ class _TermsAndPrivacyDialogState extends State<TermsAndPrivacyDialog> {
             isEnglish ? 'Email: support@posme.app' : 'อีเมล: support@posme.app',
             style: TextStyle(color: Colors.blue.shade900),
           ),
-          const SizedBox(height: 4),
-          Text(
-            isEnglish ? 'Website: https://posme.app' : 'เว็บไซต์: https://posme.app',
-            style: TextStyle(color: Colors.blue.shade900),
-          ),
         ],
       ),
     );
