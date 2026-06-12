@@ -7,7 +7,6 @@ import '../../../../common/utils/formatters.dart';
 import '../../data/auth_repository.dart';
 import '../../../shift/data/shift_repository.dart';
 import '../../../shift/data/models/shift_models.dart';
-import '../../../products/data/product_repository.dart';
 
 class EndShiftScreen extends ConsumerStatefulWidget {
   const EndShiftScreen({super.key});
@@ -18,7 +17,6 @@ class EndShiftScreen extends ConsumerStatefulWidget {
 
 class _EndShiftScreenState extends ConsumerState<EndShiftScreen> {
   final _actualCashController = TextEditingController();
-  final Map<String, TextEditingController> _stockControllers = {};
   bool _isLoading = false;
   bool _isLoadingSummary = true;
   ShiftSummaryResponse? _summary;
@@ -33,9 +31,6 @@ class _EndShiftScreenState extends ConsumerState<EndShiftScreen> {
   @override
   void dispose() {
     _actualCashController.dispose();
-    for (var controller in _stockControllers.values) {
-      controller.dispose();
-    }
     super.dispose();
   }
 
@@ -127,16 +122,8 @@ class _EndShiftScreenState extends ConsumerState<EndShiftScreen> {
 
     final actualCash = double.tryParse(_actualCashController.text) ?? 0;
 
-    final productRepo = ref.read(productRepositoryProvider);
-    final products = await productRepo.getAllProducts();
-    final stockCounts = <StockCountInput>[];
-    for (var product in products) {
-      final actualStock = int.tryParse(_stockControllers[product.id]?.text ?? '0') ?? 0;
-      stockCounts.add(StockCountInput(productId: int.parse(product.id), actualStock: actualStock));
-    }
-
     final shiftRepo = ref.read(shiftRepositoryProvider);
-    final result = await shiftRepo.closeShiftApi(actualCash, stockCounts: stockCounts);
+    final result = await shiftRepo.closeShiftApi(actualCash);
 
     if (!mounted) return;
 
@@ -229,52 +216,6 @@ class _EndShiftScreenState extends ConsumerState<EndShiftScreen> {
                       controller: _actualCashController,
                       label: 'เงิ้นสดจริงในลิ้นชัก',
                       hintText: 'กรอกจำนวนที่นับได้',
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('นับสต็อกสินค้า', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-                    const SizedBox(height: 16),
-                    FutureBuilder(
-                      future: ref.read(productRepositoryProvider).getAllProducts(),
-                      builder: (context, snapshot) {
-                        if (!snapshot.hasData) return const CircularProgressIndicator();
-
-                        final products = snapshot.data!;
-                        return Column(
-                          children: products.map((product) {
-                            _stockControllers.putIfAbsent(
-                              product.id,
-                              () => TextEditingController(text: '0'),
-                            );
-
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 12),
-                              child: Row(
-                                children: [
-                                  Expanded(flex: 2, child: Text(product.name)),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    child: TextField(
-                                      controller: _stockControllers[product.id],
-                                      decoration: const InputDecoration(labelText: 'จำนวน'),
-                                      keyboardType: TextInputType.number,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          }).toList(),
-                        );
-                      },
                     ),
                   ],
                 ),

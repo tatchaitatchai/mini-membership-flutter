@@ -40,7 +40,7 @@ class _OpenShiftScreenState extends ConsumerState<OpenShiftScreen> {
     if (!mounted) return;
 
     if (result != null) {
-      context.go('/pin');
+      context.go('/open-shift-stock-count');
     } else {
       setState(() {
         _isLoading = false;

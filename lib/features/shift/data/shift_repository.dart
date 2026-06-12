@@ -15,6 +15,7 @@ class ShiftRepository {
   static const _shiftStartTimeKey = 'shift_start_time';
   static const _branchIdKey = 'branch_id';
   static const _branchNameKey = 'branch_name';
+  static const _stockCountDoneKey = 'shift_stock_count_done';
 
   ShiftRepository(this._prefs, this._apiClient);
 
@@ -61,6 +62,7 @@ class ShiftRepository {
     if (response.isSuccess && response.data != null) {
       final data = response.data!;
       await _prefs.setBool(_shiftOpenKey, true);
+      await _prefs.setBool(_stockCountDoneKey, false);
       await _prefs.setInt(_shiftIdKey, data.shiftId);
       await _prefs.setDouble(_shiftStartingCashKey, data.startingCash);
       await _prefs.setString(_shiftStartTimeKey, data.startedAt.toIso8601String());
@@ -100,12 +102,38 @@ class ShiftRepository {
     return null;
   }
 
-  Future<CloseShiftResponse?> closeShiftApi(
-    double actualCash, {
-    String? note,
-    List<StockCountInput>? stockCounts,
-  }) async {
-    final request = CloseShiftRequest(actualCash: actualCash, note: note, stockCounts: stockCounts);
+  bool isStockCountDone() {
+    return _prefs.getBool(_stockCountDoneKey) ?? false;
+  }
+
+  Future<bool> submitStockCount(List<StockCountInput> items) async {
+    final body = {'items': items.map((e) => e.toJson()).toList()};
+    final response = await _apiClient.post<Map<String, dynamic>>(
+      '/api/v2/shifts/stock-count',
+      body: body,
+      requireAuth: true,
+      fromJson: (json) => json,
+    );
+    if (response.isSuccess) {
+      await _prefs.setBool(_stockCountDoneKey, true);
+      return true;
+    }
+    return false;
+  }
+
+  Future<bool> recountStock(List<StockCountInput> items) async {
+    final body = {'items': items.map((e) => e.toJson()).toList()};
+    final response = await _apiClient.post<Map<String, dynamic>>(
+      '/api/v2/shifts/recount-stock',
+      body: body,
+      requireAuth: true,
+      fromJson: (json) => json,
+    );
+    return response.isSuccess;
+  }
+
+  Future<CloseShiftResponse?> closeShiftApi(double actualCash, {String? note}) async {
+    final request = CloseShiftRequest(actualCash: actualCash, note: note);
     final response = await _apiClient.post<CloseShiftResponse>(
       '/api/v2/shifts/close',
       body: request.toJson(),
@@ -114,6 +142,7 @@ class ShiftRepository {
     );
     if (response.isSuccess && response.data != null) {
       await _prefs.setBool(_shiftOpenKey, false);
+      await _prefs.setBool(_stockCountDoneKey, false);
       await _prefs.remove(_shiftIdKey);
       await _prefs.remove(_shiftStartingCashKey);
       await _prefs.remove(_shiftStartTimeKey);

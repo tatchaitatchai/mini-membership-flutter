@@ -157,15 +157,13 @@ class StockCountInput {
 class CloseShiftRequest {
   final double actualCash;
   final String? note;
-  final List<StockCountInput>? stockCounts;
 
-  CloseShiftRequest({required this.actualCash, this.note, this.stockCounts});
+  CloseShiftRequest({required this.actualCash, this.note});
 
   Map<String, dynamic> toJson() {
     return {
       'actual_cash': actualCash,
       if (note != null) 'note': note,
-      if (stockCounts != null && stockCounts!.isNotEmpty) 'stock_counts': stockCounts!.map((e) => e.toJson()).toList(),
     };
   }
 }

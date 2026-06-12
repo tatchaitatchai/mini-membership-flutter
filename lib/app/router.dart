@@ -7,6 +7,8 @@ import '../features/auth/presentation/screens/select_branch_screen.dart';
 import '../features/auth/presentation/screens/staff_pin_screen.dart';
 import '../features/auth/presentation/screens/open_shift_screen.dart';
 import '../features/auth/presentation/screens/end_shift_screen.dart';
+import '../features/shift/presentation/screens/open_shift_stock_count_screen.dart';
+import '../features/shift/presentation/screens/recount_stock_screen.dart';
 import '../features/home/presentation/screens/home_screen.dart';
 import '../features/orders/presentation/screens/create_order_screen.dart';
 import '../features/orders/presentation/screens/orders_screen.dart';
@@ -43,10 +45,12 @@ final routerProvider = Provider<GoRouter>((ref) {
       final isSelectBranchRoute = state.matchedLocation == '/select-branch';
       final isOpenShiftRoute = state.matchedLocation == '/open-shift';
       final isPinRoute = state.matchedLocation == '/pin';
+      final isStockCountRoute = state.matchedLocation == '/open-shift-stock-count';
 
       final hasBranchFromLogin = authRepo.getBranchId() != null;
       final hasBranchSelected = shiftRepo.getSelectedBranchId() != null;
       final hasBranch = hasBranchFromLogin || hasBranchSelected;
+      final isStockCountDone = shiftRepo.isStockCountDone();
 
       if (!isStoreLoggedIn && !isLoginRoute && !isRegisterRoute) {
         return '/login';
@@ -56,13 +60,27 @@ final routerProvider = Provider<GoRouter>((ref) {
         return '/select-branch';
       }
 
+      // Stock count must happen before PIN when a new shift was just opened
+      if (isStoreLoggedIn &&
+          hasBranch &&
+          isShiftOpen &&
+          !isStockCountDone &&
+          !isStockCountRoute &&
+          !isLoginRoute &&
+          !isRegisterRoute &&
+          !isSelectBranchRoute &&
+          !isOpenShiftRoute) {
+        return '/open-shift-stock-count';
+      }
+
       if (isStoreLoggedIn &&
           hasBranch &&
           !isPinVerified &&
           !isPinRoute &&
           !isLoginRoute &&
           !isRegisterRoute &&
-          !isSelectBranchRoute) {
+          !isSelectBranchRoute &&
+          !isStockCountRoute) {
         return '/pin';
       }
 
@@ -86,6 +104,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/register', builder: (context, state) => const RegisterBusinessScreen()),
       GoRoute(path: '/select-branch', builder: (context, state) => const SelectBranchScreen()),
       GoRoute(path: '/open-shift', builder: (context, state) => const OpenShiftScreen()),
+      GoRoute(path: '/open-shift-stock-count', builder: (context, state) => const OpenShiftStockCountScreen()),
+      GoRoute(path: '/recount-stock', builder: (context, state) => const RecountStockScreen()),
       GoRoute(path: '/pin', builder: (context, state) => const StaffPinScreen()),
       GoRoute(path: '/home', builder: (context, state) => const HomeScreen()),
       GoRoute(path: '/create-order', builder: (context, state) => const CreateOrderScreen()),

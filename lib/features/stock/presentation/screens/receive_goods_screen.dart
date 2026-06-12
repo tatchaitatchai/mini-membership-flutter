@@ -207,7 +207,7 @@ class _ReceiveGoodsScreenState extends ConsumerState<ReceiveGoodsScreen> with Si
     final controllers = _receiveControllers[transfer.id]!;
 
     for (var item in transfer.items) {
-      controllers.putIfAbsent(item.productId, () => TextEditingController(text: item.sendCount.toString()));
+      controllers.putIfAbsent(item.productId, () => TextEditingController(text: '0'));
     }
 
     final isProcessing = _processingTransferId == transfer.id;
@@ -286,24 +286,15 @@ class _ReceiveGoodsScreenState extends ConsumerState<ReceiveGoodsScreen> with Si
                       Row(
                         children: [
                           Expanded(
-                            flex: 2,
                             child: Text(
                               'สินค้า',
                               style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey.shade700, fontSize: 13),
                             ),
                           ),
-                          SizedBox(
-                            width: 60,
-                            child: Text(
-                              'ขอ',
-                              textAlign: TextAlign.center,
-                              style: TextStyle(fontWeight: FontWeight.w600, color: Colors.grey.shade700, fontSize: 13),
-                            ),
-                          ),
                           const SizedBox(
-                            width: 90,
+                            width: 100,
                             child: Text(
-                              'รับจริง',
+                              'นับได้ (ชิ้น)',
                               textAlign: TextAlign.center,
                               style: TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
                             ),
@@ -358,17 +349,9 @@ class _ReceiveGoodsScreenState extends ConsumerState<ReceiveGoodsScreen> with Si
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
         children: [
-          Expanded(flex: 2, child: Text(item.productName, style: const TextStyle(fontSize: 14))),
+          Expanded(child: Text(item.productName, style: const TextStyle(fontSize: 14))),
           SizedBox(
-            width: 60,
-            child: Text(
-              '${item.sendCount}',
-              textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey.shade600),
-            ),
-          ),
-          SizedBox(
-            width: 90,
+            width: 100,
             child: TextField(
               controller: controller,
               decoration: InputDecoration(
